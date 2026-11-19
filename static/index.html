@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tareas</title>
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <!-- Para poder "instalarla" en la pantalla de inicio del iPhone/iPad -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tareas">
+  <link rel="apple-touch-icon" href="icono-180.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Columna izquierda: listas, proyectos y etiquetas -->
+  <nav class="menu" id="menu">
+    <div class="menu-cabecera">
+      <h1>Tareas</h1>
+    </div>
+    <input id="buscar" class="buscar" type="search" placeholder="Buscar" autocomplete="off">
+
+    <div class="listas-inteligentes" id="listas-inteligentes"></div>
+
+    <div class="seccion-titulo">
+      <span>Proyectos</span>
+      <button id="btn-nuevo-proyecto" class="boton-icono" aria-label="Nuevo proyecto">+</button>
+    </div>
+    <ul class="lista-menu" id="lista-proyectos"></ul>
+
+    <div class="seccion-titulo">
+      <span>Etiquetas</span>
+      <button id="btn-nueva-etiqueta" class="boton-icono" aria-label="Nueva etiqueta">+</button>
+    </div>
+    <ul class="lista-menu" id="lista-etiquetas"></ul>
+
+    <p class="estado-sync" id="estado-sync"></p>
+  </nav>
+
+  <!-- Columna derecha: las tareas de la lista elegida -->
+  <main class="panel" id="panel">
+    <header class="panel-cabecera">
+      <button id="btn-volver" class="boton-texto volver">‹ Listas</button>
+      <button id="btn-editar-lista" class="boton-texto" hidden>Editar</button>
+    </header>
+    <h2 id="titulo-lista" class="titulo-lista"></h2>
+    <div id="tareas" class="tareas"></div>
+
+    <form id="captura" class="captura" autocomplete="off">
+      <div class="captura-fila">
+        <input id="captura-texto" placeholder="Añadir tarea" maxlength="500" enterkeyhint="done">
+        <button type="submit" class="boton-mas" aria-label="Añadir">+</button>
+      </div>
+      <div id="captura-vista-previa" class="vista-previa"></div>
+    </form>
+  </main>
+
+  <!-- Hoja para editar una tarea -->
+  <dialog id="dialogo-tarea" class="hoja">
+    <form id="form-tarea" method="dialog">
+      <div class="hoja-cabecera">
+        <button type="button" class="boton-texto" data-cerrar>Cancelar</button>
+        <strong id="titulo-form-tarea">Tarea</strong>
+        <button type="submit" class="boton-texto negrita">Guardar</button>
+      </div>
+
+      <div class="grupo">
+        <input name="titulo" placeholder="Título" required maxlength="500" autocomplete="off">
+        <textarea name="notas" placeholder="Notas" rows="3" maxlength="5000"></textarea>
+      </div>
+
+      <div class="grupo">
+        <label class="fila">Proyecto <select name="proyecto_id" id="select-proyecto"></select></label>
+        <div class="fila">Prioridad
+          <div class="segmentos" id="segmentos-prioridad"></div>
+        </div>
+        <label class="fila">Fecha
+          <span class="fecha-con-borrar">
+            <input type="date" name="fecha">
+            <button type="button" class="boton-texto" id="btn-quitar-fecha">Quitar</button>
+          </span>
+        </label>
+      </div>
+
+      <div class="grupo">
+        <div class="fila fila-etiquetas">Etiquetas
+          <div class="chips" id="chips-etiquetas"></div>
+        </div>
+      </div>
+
+      <p class="error" id="error-tarea" hidden></p>
+      <p class="info" id="info-tarea"></p>
+      <button type="button" id="btn-eliminar-tarea" class="boton-eliminar">Eliminar tarea</button>
+    </form>
+  </dialog>
+
+  <!-- Hoja para crear/editar un proyecto o una etiqueta -->
+  <dialog id="dialogo-grupo" class="hoja hoja-pequena">
+    <form id="form-grupo" method="dialog">
+      <div class="hoja-cabecera">
+        <button type="button" class="boton-texto" data-cerrar>Cancelar</button>
+        <strong id="titulo-form-grupo"></strong>
+        <button type="submit" class="boton-texto negrita">Guardar</button>
+      </div>
+      <div class="grupo">
+        <input name="nombre" placeholder="Nombre" required maxlength="100" autocomplete="off">
+      </div>
+      <div class="grupo">
+        <div class="colores" id="colores"></div>
+      </div>
+      <button type="button" id="btn-eliminar-grupo" class="boton-eliminar">Eliminar</button>
+    </form>
+  </dialog>
+
+  <div id="aviso" class="aviso" hidden>
+    <span id="aviso-texto"></span>
+    <button id="aviso-boton" class="boton-texto">Deshacer</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

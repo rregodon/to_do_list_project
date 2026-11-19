@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tareas</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Tareas">
+  <link rel="apple-touch-icon" href="icono-180.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pantalla-login">
+  <form id="form-login" class="login">
+    <img src="icono-180.png" alt="" class="login-icono">
+    <h1>Mis tareas</h1>
+    <div class="grupo">
+      <input type="password" name="contrasena" placeholder="Contraseña" required
+             autocomplete="current-password" autofocus>
+    </div>
+    <p id="error" class="error" hidden></p>
+    <button type="submit" class="boton-principal">Entrar</button>
+  </form>
+
+  <script>
+    const form = document.getElementById("form-login");
+    const error = document.getElementById("error");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      error.hidden = true;
+      const boton = form.querySelector("button");
+      boton.disabled = true;
+      const respuesta = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contrasena: form.contrasena.value }),
+      });
+      boton.disabled = false;
+      if (respuesta.ok) {
+        location.href = "/";
+      } else {
+        error.textContent = "Contraseña incorrecta";
+        error.hidden = false;
+        form.contrasena.select();
+      }
+    });
+  </script>
+</body>
+</html>

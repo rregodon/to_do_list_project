@@ -1,0 +1,17 @@
+# Configuración para publicar la app en Render (render.com)
+services:
+  - type: web
+    name: mis-tareas
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/salud
+    envVars:
+      - key: DATABASE_URL   # la dirección de la base de datos de Neon
+        sync: false
+      - key: APP_PASSWORD   # tu contraseña para entrar
+        sync: false
+      - key: SECRET_KEY     # Render la genera automáticamente
+        generateValue: true

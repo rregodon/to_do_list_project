@@ -1,0 +1,8 @@
+fastapi==0.143.2
+uvicorn==0.53.0
+sqlmodel==0.0.48
+itsdangerous==2.2.0     # firma la cookie de sesión
+psycopg[binary]==3.3.6  # para conectar con PostgreSQL (Neon)
+# Solo para los tests
+httpx
+pytest
