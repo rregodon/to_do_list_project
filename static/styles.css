@@ -651,3 +651,24 @@ html[data-estilo="cristal"][data-variante="liquido"][data-tema="oscuro"] .tarea-
 html[data-estilo="cristal"][data-variante="liquido"][data-tema="oscuro"] .cabecera-completadas,
 html[data-estilo="cristal"][data-variante="liquido"][data-tema="oscuro"] .estado-sync { text-shadow: 0 1px 8px rgb(0 0 0 / .28); }
 html[data-estilo="cristal"][data-variante="liquido"][data-tema="oscuro"] .completada .tarea-titulo { color: rgb(255 255 255 / .75); }
+
+/* Liquid Glass: sin punto de color en los recuadros */
+html[data-estilo="cristal"][data-variante="liquido"] .tarjeta-lista::before { display: none; }
+
+/* Recuadros "De color": el recuadro entero del color de la lista, con los reflejos del cristal */
+html[data-estilo="cristal"][data-recuadros="color"] .tarjeta-lista:not(.tarjeta-nueva) {
+  background: linear-gradient(155deg, color-mix(in srgb, var(--c) 72%, white) 0%, var(--c) 60%, color-mix(in srgb, var(--c) 85%, black)) !important;
+  color: #fff !important; text-shadow: 0 1px 8px rgb(0 0 0 / .12);
+  border-color: transparent;
+}
+html[data-estilo="cristal"][data-recuadros="color"] .tarjeta-lista:not(.tarjeta-nueva)::before { display: none; }
+html[data-estilo="cristal"][data-recuadros="color"] .tarjeta-lista .sub { color: rgb(255 255 255 / .9) !important; }
+html[data-estilo="cristal"][data-recuadros="color"] .progreso { background: rgb(255 255 255 / .3) !important; }
+html[data-estilo="cristal"][data-recuadros="color"] .progreso i { background: #fff !important; }
+html[data-estilo="cristal"][data-variante="liquido"][data-recuadros="color"] .tarjeta-lista:not(.tarjeta-nueva) {
+  box-shadow:
+    inset 1.5px 1.5px 1px -1px rgb(255 255 255 / .9),
+    inset -1.5px -1.5px 1px -1px rgb(255 255 255 / .35),
+    inset 0 0 24px rgb(255 255 255 / .18),
+    0 12px 28px color-mix(in srgb, var(--c) 35%, transparent);
+}

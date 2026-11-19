@@ -143,13 +143,20 @@ const FONDOS = {
   oceano:    { nombre: "Océano",    claro: "linear-gradient(160deg,#d7f0ff,#c9f3ec 60%,#e6f7d9)", oscuro: "linear-gradient(160deg,#0f2530,#0f2a26)" },
   atardecer: { nombre: "Atardecer", claro: "linear-gradient(160deg,#ffd6a5,#ffadad 60%,#e8b4f8)", oscuro: "linear-gradient(160deg,#40261c,#3a1f33)" },
   noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
+  // Fondos claros y nítidos para el Liquid Glass
+  glaciar2:   { nombre: "Glaciar",   fijo: "claro", v: "url(fondos/glaciar2.jpg) center / cover" },
+  cielo2:     { nombre: "Cielo",     fijo: "claro", v: "url(fondos/cielo2.jpg) center / cover" },
+  perla:      { nombre: "Perla",     fijo: "claro", v: "url(fondos/perla.jpg) center / cover" },
+  menta:      { nombre: "Menta",     fijo: "claro", v: "url(fondos/menta.jpg) center / cover" },
+  lavanda2:   { nombre: "Lavanda",   fijo: "claro", v: "url(fondos/lavanda2.jpg) center / cover" },
+  melocoton:  { nombre: "Melocotón", fijo: "claro", v: "url(fondos/melocoton.jpg) center / cover" },
   // Fondos de colores para el Liquid Glass (imágenes en /fondos)
   laguna:     { nombre: "Laguna",  fijo: "oscuro", v: "url(fondos/laguna.jpg) center / cover" },
   coral:      { nombre: "Coral",   fijo: "oscuro", v: "url(fondos/coral.jpg) center / cover" },
   violeta:    { nombre: "Violeta", fijo: "oscuro", v: "url(fondos/violeta.jpg) center / cover" },
   lima:       { nombre: "Lima",    fijo: "oscuro", v: "url(fondos/lima.jpg) center / cover" },
   ambar:      { nombre: "Ámbar",   fijo: "oscuro", v: "url(fondos/ambar.jpg) center / cover" },
-  glaciar:    { nombre: "Glaciar", fijo: "claro",  v: "url(fondos/glaciar.jpg) center / cover" },
+  glaciar:    { nombre: "Glaciar difuso", fijo: "claro",  v: "url(fondos/glaciar.jpg) center / cover" },
   carbon:     { nombre: "Carbón",  fijo: "oscuro", v: "url(fondos/carbon.jpg) center / cover" },
   // Fondos sobrios: cada uno va con su modo (claro u oscuro)
   hielo:      { nombre: "Hielo", fijo: "claro",
@@ -180,7 +187,7 @@ const FONDOS = {
                oscuro: "radial-gradient(circle at 20% 25%,#0891b2 0,transparent 35%),radial-gradient(circle at 85% 60%,#a21caf 0,transparent 38%),radial-gradient(circle at 30% 92%,#15803d 0,transparent 32%),#05060f" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "liquido", tema: "claro", fondo: "laguna", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "liquido", recuadros: "cristal", tema: "claro", fondo: "glaciar2", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
 function guardarAjustes() {
   try {
@@ -209,6 +216,7 @@ function aplicarAjustes() {
   document.documentElement.dataset.tema = tema;
   document.documentElement.dataset.estilo = ajustes.estilo;
   document.documentElement.dataset.variante = ajustes.variante;
+  document.documentElement.dataset.recuadros = ajustes.recuadros ?? "cristal";
   document.querySelector('meta[name="theme-color"]').content = tema === "oscuro" ? "#000000" : "#f2f2f7";
   const fondo = $("fondo");
   document.body.classList.toggle("con-foto", ajustes.fondo === "foto" && !!ajustes.foto);
@@ -600,12 +608,17 @@ $("btn-borrar-lista").addEventListener("click", () => {
 // Ajustes
 // Combinaciones ya hechas: un toque y listo
 const TEMAS = [
+  ["Glaciar", { estilo: "cristal", variante: "liquido", fondo: "glaciar2" }],
+  ["Cielo", { estilo: "cristal", variante: "liquido", fondo: "cielo2" }],
+  ["Perla", { estilo: "cristal", variante: "liquido", fondo: "perla" }],
+  ["Menta", { estilo: "cristal", variante: "liquido", fondo: "menta" }],
+  ["Lavanda", { estilo: "cristal", variante: "liquido", fondo: "lavanda2" }],
+  ["Melocotón", { estilo: "cristal", variante: "liquido", fondo: "melocoton" }],
   ["Laguna", { estilo: "cristal", variante: "liquido", fondo: "laguna" }],
   ["Coral", { estilo: "cristal", variante: "liquido", fondo: "coral" }],
   ["Violeta", { estilo: "cristal", variante: "liquido", fondo: "violeta" }],
   ["Lima", { estilo: "cristal", variante: "liquido", fondo: "lima" }],
   ["Ámbar", { estilo: "cristal", variante: "liquido", fondo: "ambar" }],
-  ["Glaciar", { estilo: "cristal", variante: "liquido", fondo: "glaciar" }],
   ["Carbón", { estilo: "cristal", variante: "liquido", fondo: "carbon" }],
   ["Hielo", { estilo: "cristal", variante: "sobrio", fondo: "hielo" }],
   ["Niebla", { estilo: "cristal", variante: "sobrio", fondo: "niebla" }],
@@ -642,6 +655,15 @@ function pintarAjustes() {
     }, texto))
   );
   $("grupo-variantes").hidden = ajustes.estilo !== "cristal";
+  $("grupo-recuadros").hidden = ajustes.estilo !== "cristal";
+  $("segmentos-recuadros").replaceChildren(
+    ...[["cristal", "Cristal"], ["color", "De color"]].map(([valor, texto]) =>
+      h("button", {
+        type: "button", class: (ajustes.recuadros ?? "cristal") === valor ? "elegido" : "",
+        onclick: () => { ajustes.recuadros = valor; guardarAjustes(); pintarAjustes(); pintar(); },
+      }, texto)
+    )
+  );
   $("variantes").replaceChildren(
     ...VARIANTES.map(([valor, texto]) => h("button", {
       type: "button", class: "estilo-opcion" + (ajustes.variante === valor ? " elegido" : ""),
