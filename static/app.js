@@ -143,6 +143,14 @@ const FONDOS = {
   oceano:    { nombre: "Océano",    claro: "linear-gradient(160deg,#d7f0ff,#c9f3ec 60%,#e6f7d9)", oscuro: "linear-gradient(160deg,#0f2530,#0f2a26)" },
   atardecer: { nombre: "Atardecer", claro: "linear-gradient(160deg,#ffd6a5,#ffadad 60%,#e8b4f8)", oscuro: "linear-gradient(160deg,#40261c,#3a1f33)" },
   noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
+  // Fondos de colores para el Liquid Glass (imágenes en /fondos)
+  laguna:     { nombre: "Laguna",  fijo: "oscuro", v: "url(fondos/laguna.jpg) center / cover" },
+  coral:      { nombre: "Coral",   fijo: "oscuro", v: "url(fondos/coral.jpg) center / cover" },
+  violeta:    { nombre: "Violeta", fijo: "oscuro", v: "url(fondos/violeta.jpg) center / cover" },
+  lima:       { nombre: "Lima",    fijo: "oscuro", v: "url(fondos/lima.jpg) center / cover" },
+  ambar:      { nombre: "Ámbar",   fijo: "oscuro", v: "url(fondos/ambar.jpg) center / cover" },
+  glaciar:    { nombre: "Glaciar", fijo: "claro",  v: "url(fondos/glaciar.jpg) center / cover" },
+  carbon:     { nombre: "Carbón",  fijo: "oscuro", v: "url(fondos/carbon.jpg) center / cover" },
   // Fondos sobrios: cada uno va con su modo (claro u oscuro)
   hielo:      { nombre: "Hielo", fijo: "claro",
                 v: "radial-gradient(90% 55% at 15% 0%,#ffffff 0,transparent 60%),radial-gradient(70% 50% at 100% 100%,#c6d9ec 0,transparent 70%),linear-gradient(180deg,#eaf2fa,#d9e6f2)" },
@@ -172,7 +180,7 @@ const FONDOS = {
                oscuro: "radial-gradient(circle at 20% 25%,#0891b2 0,transparent 35%),radial-gradient(circle at 85% 60%,#a21caf 0,transparent 38%),radial-gradient(circle at 30% 92%,#15803d 0,transparent 32%),#05060f" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "sobrio", tema: "claro", fondo: "hielo", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "liquido", tema: "claro", fondo: "laguna", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
 function guardarAjustes() {
   try {
@@ -592,6 +600,13 @@ $("btn-borrar-lista").addEventListener("click", () => {
 // Ajustes
 // Combinaciones ya hechas: un toque y listo
 const TEMAS = [
+  ["Laguna", { estilo: "cristal", variante: "liquido", fondo: "laguna" }],
+  ["Coral", { estilo: "cristal", variante: "liquido", fondo: "coral" }],
+  ["Violeta", { estilo: "cristal", variante: "liquido", fondo: "violeta" }],
+  ["Lima", { estilo: "cristal", variante: "liquido", fondo: "lima" }],
+  ["Ámbar", { estilo: "cristal", variante: "liquido", fondo: "ambar" }],
+  ["Glaciar", { estilo: "cristal", variante: "liquido", fondo: "glaciar" }],
+  ["Carbón", { estilo: "cristal", variante: "liquido", fondo: "carbon" }],
   ["Hielo", { estilo: "cristal", variante: "sobrio", fondo: "hielo" }],
   ["Niebla", { estilo: "cristal", variante: "sobrio", fondo: "niebla" }],
   ["Acero", { estilo: "cristal", variante: "sobrio", fondo: "acero" }],
@@ -604,7 +619,7 @@ const TEMAS = [
 
 const ESTILOS = [["clasico", "Clásico"], ["bento", "Bento"], ["cristal", "Cristal"], ["papel", "Papel"], ["monocromo", "Monocromo"]];
 
-const VARIANTES = [["sobrio", "Sobrio"], ["esmerilado", "Esmerilado"], ["tintado", "Tintado"], ["hielo", "Hielo"], ["liquido", "Líquido"], ["neon", "Neón"]];
+const VARIANTES = [["liquido", "Liquid Glass"], ["sobrio", "Sobrio"], ["esmerilado", "Esmerilado"], ["tintado", "Tintado"], ["hielo", "Hielo"], ["neon", "Neón"]];
 
 function pintarAjustes() {
   $("temas").replaceChildren(
