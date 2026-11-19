@@ -672,3 +672,20 @@ html[data-estilo="cristal"][data-variante="liquido"][data-recuadros="color"] .ta
     inset 0 0 24px rgb(255 255 255 / .18),
     0 12px 28px color-mix(in srgb, var(--c) 35%, transparent);
 }
+
+.peligro-texto { color: var(--peligro) !important; width: 100%; text-align: left; }
+#temas .grupo { margin-bottom: 14px; }
+
+/* "De color" también en los estilos que no son de cristal */
+html[data-recuadros="color"]:not([data-estilo="cristal"]) .tarjeta-lista:not(.tarjeta-nueva) {
+  background: linear-gradient(155deg, color-mix(in srgb, var(--c) 78%, white), var(--c) 65%) !important;
+  color: #fff !important; border-color: transparent !important;
+}
+html[data-recuadros="color"]:not([data-estilo="cristal"]) .tarjeta-lista:not(.tarjeta-nueva) .contador,
+html[data-recuadros="color"]:not([data-estilo="cristal"]) .tarjeta-lista:not(.tarjeta-nueva) .sub { color: #fff !important; }
+html[data-recuadros="color"]:not([data-estilo="cristal"]) .progreso { background: rgb(255 255 255 / .3) !important; }
+html[data-recuadros="color"]:not([data-estilo="cristal"]) .progreso i { background: #fff !important; }
+
+/* La cabecera de las hojas no deja ver lo que pasa por debajo al hacer scroll */
+.hoja form, .hoja-contenido { background: inherit; }
+.hoja-cabecera { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); z-index: 5; }

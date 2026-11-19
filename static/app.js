@@ -187,7 +187,7 @@ const FONDOS = {
                oscuro: "radial-gradient(circle at 20% 25%,#0891b2 0,transparent 35%),radial-gradient(circle at 85% 60%,#a21caf 0,transparent 38%),radial-gradient(circle at 30% 92%,#15803d 0,transparent 32%),#05060f" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "liquido", recuadros: "cristal", tema: "claro", fondo: "glaciar2", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "liquido", recuadros: "cristal", temaElegido: "Glaciar", tema: "claro", fondo: "glaciar2", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
 function guardarAjustes() {
   try {
@@ -207,8 +207,7 @@ oscuroDelSistema.addEventListener?.("change", () => aplicarAjustes());
 function temaActual() {
   const fijo = ajustes.fondo !== "foto" && FONDOS[ajustes.fondo]?.fijo;
   if (fijo) return fijo;
-  if (ajustes.tema === "auto") return oscuroDelSistema.matches ? "oscuro" : "claro";
-  return ajustes.tema;
+  return ajustes.tema === "oscuro" ? "oscuro" : "claro";
 }
 
 function aplicarAjustes() {
@@ -425,6 +424,15 @@ function activarDeslizar(fila, id) {
     der.style.opacity = !haciaDerecha && dx < -30 ? 1 : 0;
   });
 
+  // Deja la fila como estaba (sin rojo ni verde detrás)
+  const limpiar = () => {
+    tarea.classList.remove("arrastrando");
+    tarea.style.transform = "";
+    detras.style.background = "";
+    izq.style.opacity = 0;
+    der.style.opacity = 0;
+  };
+
   const soltar = () => {
     if (!activo) return;
     activo = false;
@@ -439,11 +447,12 @@ function activarDeslizar(fila, id) {
       tarea.style.transform = "translateX(-100%)";
       setTimeout(() => borrarTarea(id), 180);
     } else {
-      tarea.style.transform = "";
+      limpiar();
     }
   };
   tarea.addEventListener("pointerup", soltar);
-  tarea.addEventListener("pointercancel", () => { activo = false; tarea.classList.remove("arrastrando"); tarea.style.transform = ""; });
+  tarea.addEventListener("pointercancel", () => { activo = false; limpiar(); });
+  tarea.addEventListener("lostpointercapture", () => { if (activo) { activo = false; limpiar(); } });
 }
 
 // ---------- Acciones sobre tareas ----------
@@ -607,102 +616,86 @@ $("btn-borrar-lista").addEventListener("click", () => {
 
 // Ajustes
 // Combinaciones ya hechas: un toque y listo
-const TEMAS = [
-  ["Glaciar", { estilo: "cristal", variante: "liquido", fondo: "glaciar2" }],
-  ["Cielo", { estilo: "cristal", variante: "liquido", fondo: "cielo2" }],
-  ["Perla", { estilo: "cristal", variante: "liquido", fondo: "perla" }],
-  ["Menta", { estilo: "cristal", variante: "liquido", fondo: "menta" }],
-  ["Lavanda", { estilo: "cristal", variante: "liquido", fondo: "lavanda2" }],
-  ["Melocotón", { estilo: "cristal", variante: "liquido", fondo: "melocoton" }],
-  ["Laguna", { estilo: "cristal", variante: "liquido", fondo: "laguna" }],
-  ["Coral", { estilo: "cristal", variante: "liquido", fondo: "coral" }],
-  ["Violeta", { estilo: "cristal", variante: "liquido", fondo: "violeta" }],
-  ["Lima", { estilo: "cristal", variante: "liquido", fondo: "lima" }],
-  ["Ámbar", { estilo: "cristal", variante: "liquido", fondo: "ambar" }],
-  ["Carbón", { estilo: "cristal", variante: "liquido", fondo: "carbon" }],
-  ["Hielo", { estilo: "cristal", variante: "sobrio", fondo: "hielo" }],
-  ["Niebla", { estilo: "cristal", variante: "sobrio", fondo: "niebla" }],
-  ["Acero", { estilo: "cristal", variante: "sobrio", fondo: "acero" }],
-  ["Grafito", { estilo: "cristal", variante: "sobrio", fondo: "grafito" }],
-  ["Ónix", { estilo: "cristal", variante: "sobrio", fondo: "onix" }],
-  ["Pizarra", { estilo: "cristal", variante: "sobrio", fondo: "pizarra" }],
-  ["Medianoche", { estilo: "cristal", variante: "sobrio", fondo: "medianoche" }],
-  ["Clásico", { estilo: "clasico", variante: "esmerilado", fondo: "ninguno" }],
+// Temas: cada uno es un aspecto completo (fondo + estilo). Un toque y listo.
+const L = (fondo) => ({ estilo: "cristal", variante: "liquido", fondo });
+const S = (fondo) => ({ estilo: "cristal", variante: "sobrio", fondo });
+const GRUPOS_TEMAS = [
+  ["Liquid Glass", [
+    ["Glaciar", L("glaciar2")], ["Cielo", L("cielo2")], ["Perla", L("perla")], ["Menta", L("menta")],
+    ["Lavanda", L("lavanda2")], ["Melocotón", L("melocoton")],
+  ]],
+  ["Liquid Glass de colores", [
+    ["Laguna", L("laguna")], ["Coral", L("coral")], ["Violeta", L("violeta")], ["Lima", L("lima")],
+    ["Ámbar", L("ambar")], ["Carbón", L("carbon")],
+  ]],
+  ["Sobrios", [
+    ["Hielo", S("hielo")], ["Niebla", S("niebla")], ["Acero", S("acero")], ["Grafito", S("grafito")],
+    ["Ónix", S("onix")], ["Pizarra", S("pizarra")], ["Medianoche", S("medianoche")],
+  ]],
+  ["Otros estilos", [
+    ["Clásico", { estilo: "clasico", fondo: "ninguno", tema: "claro", muestra: "#f2f2f7" }],
+    ["Clásico oscuro", { estilo: "clasico", fondo: "ninguno", tema: "oscuro", muestra: "#000" }],
+    ["Bento", { estilo: "bento", fondo: "ninguno", tema: "claro", muestra: "#f2f2f7" }],
+    ["Papel", { estilo: "papel", fondo: "ninguno", tema: "claro", muestra: "#f5efe3" }],
+    ["Monocromo", { estilo: "monocromo", fondo: "ninguno", tema: "claro", muestra: "#ffffff" }],
+    ["Aurora", { estilo: "cristal", variante: "esmerilado", fondo: "aurora", tema: "claro" }],
+    ["Lava", { estilo: "cristal", variante: "tintado", fondo: "lava", tema: "claro" }],
+    ["Océano", { estilo: "cristal", variante: "hielo", fondo: "oceano", tema: "claro" }],
+    ["Neón", { estilo: "cristal", variante: "neon", fondo: "neon", tema: "oscuro" }],
+  ]],
 ];
 
-const ESTILOS = [["clasico", "Clásico"], ["bento", "Bento"], ["cristal", "Cristal"], ["papel", "Papel"], ["monocromo", "Monocromo"]];
-
-const VARIANTES = [["liquido", "Liquid Glass"], ["sobrio", "Sobrio"], ["esmerilado", "Esmerilado"], ["tintado", "Tintado"], ["hielo", "Hielo"], ["neon", "Neón"]];
+function elegirTema(nombre, t) {
+  const f = FONDOS[t.fondo];
+  Object.assign(ajustes, {
+    temaElegido: nombre,
+    estilo: t.estilo,
+    variante: t.variante ?? "esmerilado",
+    fondo: t.fondo,
+    tema: t.tema ?? f?.fijo ?? "claro",
+  });
+  guardarAjustes(); pintarAjustes(); pintar();
+}
 
 function pintarAjustes() {
   $("temas").replaceChildren(
-    ...TEMAS.map(([nombre, t]) => {
-      const f = FONDOS[t.fondo];
-      const elegido = ajustes.estilo === t.estilo && ajustes.fondo === t.fondo && (t.estilo !== "cristal" || ajustes.variante === t.variante);
-      return h("button", {
-        type: "button", class: "muestra-fondo muestra-tema" + (elegido ? " elegido" : ""),
-        style: `background:${f.v ?? f.claro}`,
-        "data-oscuro": f.fijo === "oscuro",
-        onclick: () => { Object.assign(ajustes, t); guardarAjustes(); pintarAjustes(); pintar(); },
-      }, h("span", { class: "mini-tarjeta" }), h("span", { class: "mini-tarjeta" }), nombre);
-    })
+    ...GRUPOS_TEMAS.map(([titulo, temas]) => h("div", {},
+      h("p", { class: "etiqueta-grupo" }, titulo),
+      h("div", { class: "grupo" }, h("div", { class: "fondos" },
+        temas.map(([nombre, t]) => {
+          const f = FONDOS[t.fondo];
+          const oscuro = (t.tema ?? f?.fijo) === "oscuro";
+          return h("button", {
+            type: "button",
+            class: "muestra-fondo muestra-tema" + (ajustes.temaElegido === nombre && ajustes.fondo !== "foto" ? " elegido" : ""),
+            style: `background:${t.muestra ?? f.v ?? f[oscuro ? "oscuro" : "claro"]}`,
+            "data-oscuro": oscuro,
+            onclick: () => elegirTema(nombre, t),
+          }, h("span", { class: "mini-tarjeta" }), h("span", { class: "mini-tarjeta" }), nombre);
+        })
+      )),
+    ))
   );
 
-  $("estilos").replaceChildren(
-    ...ESTILOS.map(([valor, texto]) => h("button", {
-      type: "button", class: "estilo-opcion" + (ajustes.estilo === valor ? " elegido" : ""),
-      onclick: () => { ajustes.estilo = valor; guardarAjustes(); pintarAjustes(); pintar(); },
-    }, texto))
-  );
-  $("grupo-variantes").hidden = ajustes.estilo !== "cristal";
-  $("grupo-recuadros").hidden = ajustes.estilo !== "cristal";
   $("segmentos-recuadros").replaceChildren(
-    ...[["cristal", "Cristal"], ["color", "De color"]].map(([valor, texto]) =>
+    ...[["cristal", "Del tema"], ["color", "De color"]].map(([valor, texto]) =>
       h("button", {
         type: "button", class: (ajustes.recuadros ?? "cristal") === valor ? "elegido" : "",
         onclick: () => { ajustes.recuadros = valor; guardarAjustes(); pintarAjustes(); pintar(); },
       }, texto)
     )
   );
-  $("variantes").replaceChildren(
-    ...VARIANTES.map(([valor, texto]) => h("button", {
-      type: "button", class: "estilo-opcion" + (ajustes.variante === valor ? " elegido" : ""),
-      onclick: () => { ajustes.variante = valor; guardarAjustes(); pintarAjustes(); pintar(); },
-    }, texto))
-  );
 
-  $("segmentos-tema").replaceChildren(
-    ...[["claro", "Claro"], ["oscuro", "Oscuro"], ["auto", "Auto"]].map(([valor, texto]) =>
-      h("button", {
-        type: "button", class: ajustes.tema === valor ? "elegido" : "",
-        onclick: () => { ajustes.tema = valor; guardarAjustes(); pintarAjustes(); },
-      }, texto)
-    )
-  );
-
-  const tema = temaActual();
-  const muestras = Object.entries(FONDOS).map(([clave, f]) =>
-    h("button", {
-      type: "button",
-      class: "muestra-fondo" + (ajustes.fondo === clave ? " elegido" : ""),
-      style: `background:${f.v ?? f[tema]}`,
-      onclick: () => { ajustes.fondo = clave; guardarAjustes(); pintarAjustes(); },
-    }, f.nombre)
-  );
-  if (ajustes.foto) {
-    muestras.push(h("button", {
-      type: "button",
-      class: "muestra-fondo" + (ajustes.fondo === "foto" ? " elegido" : ""),
-      style: `background-image:url(${ajustes.foto})`,
-      onclick: () => { ajustes.fondo = "foto"; guardarAjustes(); pintarAjustes(); },
-    }, "Tu foto"));
-  }
-  $("fondos").replaceChildren(...muestras);
-
-  pintarColores($("colores-defecto"), ajustes.colorDefecto, (c) => {
-    ajustes.colorDefecto = c; guardarAjustes(); pintarAjustes();
-  });
+  const conFoto = ajustes.fondo === "foto" && !!ajustes.foto;
+  $("texto-foto").textContent = conFoto ? "Cambiar mi foto…" : "Usar mi foto…";
+  $("btn-quitar-foto").hidden = !conFoto;
 }
+
+$("btn-quitar-foto").addEventListener("click", () => {
+  ajustes.foto = null;
+  ajustes.fondo = FONDOS[ajustes.fondoAntesDeFoto] ? ajustes.fondoAntesDeFoto : "glaciar2";
+  guardarAjustes(); pintarAjustes(); pintar();
+});
 
 $("btn-ajustes").addEventListener("click", () => {
   pintarAjustes();
@@ -723,6 +716,7 @@ $("input-foto").addEventListener("change", async (e) => {
     lienzo.height = Math.round(imagen.height * escala);
     lienzo.getContext("2d").drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
     ajustes.foto = lienzo.toDataURL("image/jpeg", 0.8);
+    if (ajustes.fondo !== "foto") ajustes.fondoAntesDeFoto = ajustes.fondo;
     ajustes.fondo = "foto";
     guardarAjustes();
     pintarAjustes();

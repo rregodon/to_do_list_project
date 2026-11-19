@@ -113,54 +113,24 @@
         <button type="button" class="boton-texto negrita" data-cerrar>Listo</button>
       </div>
 
-      <p class="etiqueta-grupo">Temas</p>
-      <div class="grupo">
-        <div class="fondos" id="temas"></div>
-      </div>
-
-      <div id="grupo-recuadros">
-        <p class="etiqueta-grupo">Recuadros de las listas</p>
-        <div class="grupo">
-          <div class="fila">
-            <span>Aspecto</span>
-            <div class="segmentos" id="segmentos-recuadros"></div>
-          </div>
-        </div>
-      </div>
-
-      <p class="etiqueta-grupo">Estilo</p>
-      <div class="grupo">
-        <div class="estilos" id="estilos"></div>
-      </div>
-
-      <div id="grupo-variantes">
-        <p class="etiqueta-grupo">Tipo de cristal</p>
-        <div class="grupo">
-          <div class="estilos" id="variantes"></div>
-        </div>
-      </div>
-
-      <p class="etiqueta-grupo">Apariencia</p>
+      <p class="etiqueta-grupo">Recuadros de las listas</p>
       <div class="grupo">
         <div class="fila">
-          <span>Modo</span>
-          <div class="segmentos" id="segmentos-tema"></div>
+          <span>Aspecto</span>
+          <div class="segmentos" id="segmentos-recuadros"></div>
         </div>
       </div>
 
       <p class="etiqueta-grupo">Fondo</p>
       <div class="grupo">
-        <div class="fondos" id="fondos"></div>
-        <label class="fila fila-boton">
-          <span>Elegir una foto…</span>
+        <label class="fila fila-boton" id="fila-foto">
+          <span id="texto-foto">Usar mi foto…</span>
           <input type="file" accept="image/*" id="input-foto" hidden>
         </label>
+        <button type="button" class="fila fila-boton peligro-texto" id="btn-quitar-foto">Quitar mi foto</button>
       </div>
 
-      <p class="etiqueta-grupo">Color de las listas nuevas</p>
-      <div class="grupo">
-        <div class="colores" id="colores-defecto"></div>
-      </div>
+      <div id="temas"></div>
 
       <p class="info" id="info-ajustes"></p>
     </div>
