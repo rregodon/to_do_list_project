@@ -1,6 +1,6 @@
 // Service worker: guarda la app en el dispositivo para que abra al instante
 // (aunque el servidor esté "dormido") y funcione sin conexión.
-const CACHE = "tareas-v4";
+const CACHE = "tareas-v5";
 const ARCHIVOS = ["/", "/index.html", "/styles.css", "/app.js", "/manifest.json", "/icono-180.png", "/icono-512.png"];
 
 self.addEventListener("install", (e) => {

@@ -143,9 +143,21 @@ const FONDOS = {
   oceano:    { nombre: "Océano",    claro: "linear-gradient(160deg,#d7f0ff,#c9f3ec 60%,#e6f7d9)", oscuro: "linear-gradient(160deg,#0f2530,#0f2a26)" },
   atardecer: { nombre: "Atardecer", claro: "linear-gradient(160deg,#ffd6a5,#ffadad 60%,#e8b4f8)", oscuro: "linear-gradient(160deg,#40261c,#3a1f33)" },
   noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
+  aurora:    { nombre: "Aurora",
+               claro: "radial-gradient(circle at 15% 15%,#a5f3fc 0,transparent 42%),radial-gradient(circle at 90% 35%,#c4b5fd 0,transparent 45%),radial-gradient(circle at 30% 85%,#f9a8d4 0,transparent 45%),#eef2ff",
+               oscuro: "radial-gradient(circle at 15% 15%,#0e7490 0,transparent 42%),radial-gradient(circle at 90% 35%,#6d28d9 0,transparent 45%),radial-gradient(circle at 30% 85%,#be185d 0,transparent 45%),#0b1020" },
+  lava:      { nombre: "Lava",
+               claro: "radial-gradient(circle at 80% 10%,#fdba74 0,transparent 40%),radial-gradient(circle at 10% 55%,#fda4af 0,transparent 45%),radial-gradient(circle at 75% 90%,#fde68a 0,transparent 45%),#fff7ed",
+               oscuro: "radial-gradient(circle at 80% 10%,#c2410c 0,transparent 40%),radial-gradient(circle at 10% 55%,#be123c 0,transparent 45%),radial-gradient(circle at 75% 90%,#a16207 0,transparent 45%),#1a0f0a" },
+  bosque:    { nombre: "Bosque",
+               claro: "radial-gradient(circle at 20% 20%,#bbf7d0 0,transparent 45%),radial-gradient(circle at 85% 55%,#99f6e4 0,transparent 45%),radial-gradient(circle at 30% 95%,#d9f99d 0,transparent 40%),#f0fdf4",
+               oscuro: "radial-gradient(circle at 20% 20%,#166534 0,transparent 45%),radial-gradient(circle at 85% 55%,#115e59 0,transparent 45%),radial-gradient(circle at 30% 95%,#3f6212 0,transparent 40%),#06120b" },
+  neon:      { nombre: "Neón",
+               claro: "radial-gradient(circle at 20% 25%,#67e8f9 0,transparent 35%),radial-gradient(circle at 85% 60%,#f0abfc 0,transparent 38%),radial-gradient(circle at 30% 92%,#86efac 0,transparent 32%),#f5f3ff",
+               oscuro: "radial-gradient(circle at 20% 25%,#0891b2 0,transparent 35%),radial-gradient(circle at 85% 60%,#a21caf 0,transparent 38%),radial-gradient(circle at 30% 92%,#15803d 0,transparent 32%),#05060f" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "clasico", tema: "claro", fondo: "ninguno", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "clasico", variante: "esmerilado", tema: "claro", fondo: "ninguno", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
 function guardarAjustes() {
   try {
@@ -171,6 +183,7 @@ function aplicarAjustes() {
   const tema = temaActual();
   document.documentElement.dataset.tema = tema;
   document.documentElement.dataset.estilo = ajustes.estilo;
+  document.documentElement.dataset.variante = ajustes.variante;
   document.querySelector('meta[name="theme-color"]').content = tema === "oscuro" ? "#000000" : "#f2f2f7";
   const fondo = $("fondo");
   document.body.classList.toggle("con-foto", ajustes.fondo === "foto" && !!ajustes.foto);
@@ -561,11 +574,20 @@ $("btn-borrar-lista").addEventListener("click", () => {
 // Ajustes
 const ESTILOS = [["clasico", "Clásico"], ["bento", "Bento"], ["cristal", "Cristal"], ["papel", "Papel"], ["monocromo", "Monocromo"]];
 
+const VARIANTES = [["esmerilado", "Esmerilado"], ["tintado", "Tintado"], ["hielo", "Hielo"], ["liquido", "Líquido"], ["neon", "Neón"]];
+
 function pintarAjustes() {
   $("estilos").replaceChildren(
     ...ESTILOS.map(([valor, texto]) => h("button", {
       type: "button", class: "estilo-opcion" + (ajustes.estilo === valor ? " elegido" : ""),
       onclick: () => { ajustes.estilo = valor; guardarAjustes(); pintarAjustes(); pintar(); },
+    }, texto))
+  );
+  $("grupo-variantes").hidden = ajustes.estilo !== "cristal";
+  $("variantes").replaceChildren(
+    ...VARIANTES.map(([valor, texto]) => h("button", {
+      type: "button", class: "estilo-opcion" + (ajustes.variante === valor ? " elegido" : ""),
+      onclick: () => { ajustes.variante = valor; guardarAjustes(); pintarAjustes(); pintar(); },
     }, texto))
   );
 
