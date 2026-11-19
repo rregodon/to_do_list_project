@@ -16,7 +16,7 @@ from pydantic import field_validator
 from sqlalchemy import JSON, BigInteger, Column
 from sqlmodel import Field, SQLModel
 
-COLORES = ["gris", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "rosa"]
+COLORES = ["gris", "rojo", "naranja", "amarillo", "verde", "turquesa", "azul", "indigo", "morado", "rosa"]
 PATRON_ID = r"^[A-Za-z0-9_-]{1,40}$"
 PATRON_FECHA = r"^\d{4}-\d{2}-\d{2}$"
 

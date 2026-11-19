@@ -1,12 +1,16 @@
-// Lógica de la to do list.
+// Lógica de la app de tareas.
 //
 // Todo se guarda primero en este dispositivo (localStorage), así la app
 // abre al instante y funciona sin conexión. Por detrás, se sincroniza con
 // el servidor (/api/sync) para tener lo mismo en el iPhone, el iPad y el ordenador.
+//
+// Nota: en el servidor las listas se llaman "proyectos", y "importante"
+// se guarda como prioridad 1 (el resto, prioridad 4).
 
-const COLORES = ["gris", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "rosa"];
+const COLORES = ["azul", "indigo", "morado", "rosa", "rojo", "naranja", "amarillo", "verde", "turquesa", "gris"];
 const TIPOS = ["proyectos", "etiquetas", "tareas"];
 const CLAVE = "tareas-v1";
+const CLAVE_AJUSTES = "ajustes-v1";
 
 const $ = (id) => document.getElementById(id);
 
@@ -15,21 +19,21 @@ const $ = (id) => document.getElementById(id);
 function datosVacios() {
   return {
     proyectos: {}, etiquetas: {}, tareas: {},
-    cursor: 0,                                          // última versión recibida del servidor
+    cursor: 0,                                                 // última versión recibida del servidor
     pendientes: { proyectos: [], etiquetas: [], tareas: [] }, // ids aún sin enviar
     ultimaSync: null,
   };
 }
 
-function cargarDatos() {
+function leerJSON(clave, porDefecto) {
   try {
-    return { ...datosVacios(), ...JSON.parse(localStorage.getItem(CLAVE)) };
+    return { ...porDefecto, ...JSON.parse(localStorage.getItem(clave)) };
   } catch {
-    return datosVacios();
+    return porDefecto;
   }
 }
 
-const db = cargarDatos();
+const db = leerJSON(CLAVE, datosVacios());
 
 function persistir() {
   localStorage.setItem(CLAVE, JSON.stringify(db));
@@ -56,7 +60,6 @@ const vivos = (tipo) => Object.values(db[tipo]).filter((r) => !r.borrado);
 
 let sincronizando = false;
 let temporizadorSync = null;
-let estadoSync = "";
 
 function programarSync(ms = 0) {
   clearTimeout(temporizadorSync);
@@ -70,8 +73,6 @@ async function sincronizar() {
   for (const tipo of TIPOS) {
     envio[tipo] = db.pendientes[tipo].map((id) => db[tipo][id]).filter(Boolean);
   }
-  const hayCambios = TIPOS.some((t) => envio[t].length);
-  if (hayCambios) mostrarEstadoSync("Sincronizando…");
 
   try {
     const respuesta = await fetch("/api/sync", {
@@ -123,90 +124,63 @@ function mostrarEstadoSync(texto) {
       : db.ultimaSync
         ? `Sincronizado a las ${new Date(db.ultimaSync).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
         : "";
-  } else if (texto !== "Sincronizando…") {
-    texto += " · los cambios se guardan en este dispositivo";
+  } else {
+    texto += " · tus cambios están guardados en este dispositivo";
   }
-  estadoSync = texto;
   $("estado-sync").textContent = texto;
+  $("info-ajustes").textContent = texto;
 }
 
-// ---------- Fechas ----------
+// ---------- Ajustes (de este dispositivo) ----------
 
-function aTexto(fecha) {
-  const m = String(fecha.getMonth() + 1).padStart(2, "0");
-  const d = String(fecha.getDate()).padStart(2, "0");
-  return `${fecha.getFullYear()}-${m}-${d}`;
-}
-
-function deTexto(texto) {
-  const [a, m, d] = texto.split("-").map(Number);
-  return new Date(a, m - 1, d);
-}
-
-function sumarDias(fecha, dias) {
-  const r = new Date(fecha);
-  r.setDate(r.getDate() + dias);
-  return r;
-}
-
-const hoy = () => aTexto(new Date());
-
-function fechaLegible(texto) {
-  const h = new Date();
-  if (texto === aTexto(h)) return "Hoy";
-  if (texto === aTexto(sumarDias(h, 1))) return "Mañana";
-  if (texto === aTexto(sumarDias(h, -1))) return "Ayer";
-  const fecha = deTexto(texto);
-  const opciones = { weekday: "short", day: "numeric", month: "short" };
-  if (fecha.getFullYear() !== h.getFullYear()) opciones.year = "numeric";
-  const texto2 = new Intl.DateTimeFormat("es-ES", opciones).format(fecha);
-  return texto2[0].toUpperCase() + texto2.slice(1);
-}
-
-// ---------- Listas (vistas) ----------
-
-const LISTAS = {
-  bandeja:     { nombre: "Bandeja de entrada", icono: "📥", color: "azul",
-                 filtro: (t) => !t.completada && !t.proyecto_id },
-  hoy:         { nombre: "Hoy", icono: "★", color: "verde",
-                 filtro: (t) => !t.completada && t.fecha && t.fecha <= hoy() },
-  proximos:    { nombre: "Próximos", icono: "📅", color: "rojo",
-                 filtro: (t) => !t.completada && t.fecha },
-  importantes: { nombre: "Importantes", icono: "!", color: "naranja",
-                 filtro: (t) => !t.completada && t.prioridad <= 2 },
-  todas:       { nombre: "Todas", icono: "≡", color: "gris",
-                 filtro: (t) => !t.completada },
-  completadas: { nombre: "Completadas", icono: "✓", color: "morado",
-                 filtro: (t) => t.completada },
+const FONDOS = {
+  ninguno:   { nombre: "Liso",      claro: "#f2f2f7", oscuro: "#000000" },
+  arena:     { nombre: "Arena",     claro: "#f4eee4", oscuro: "#1d1a16" },
+  salvia:    { nombre: "Salvia",    claro: "#e6eee4", oscuro: "#151b15" },
+  cielo:     { nombre: "Cielo",     claro: "#e4edf7", oscuro: "#121821" },
+  lavanda:   { nombre: "Lavanda",   claro: "#ece8f6", oscuro: "#18151f" },
+  amanecer:  { nombre: "Amanecer",  claro: "linear-gradient(160deg,#ffe3d3,#fbd3e9 55%,#e3dcff)", oscuro: "linear-gradient(160deg,#3a2430,#24203a)" },
+  oceano:    { nombre: "Océano",    claro: "linear-gradient(160deg,#d7f0ff,#c9f3ec 60%,#e6f7d9)", oscuro: "linear-gradient(160deg,#0f2530,#0f2a26)" },
+  atardecer: { nombre: "Atardecer", claro: "linear-gradient(160deg,#ffd6a5,#ffadad 60%,#e8b4f8)", oscuro: "linear-gradient(160deg,#40261c,#3a1f33)" },
+  noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
 };
 
-let vista = { tipo: "bandeja" }; // o { tipo: "proyecto", id } / { tipo: "etiqueta", id }
-let busqueda = "";
+const ajustes = leerJSON(CLAVE_AJUSTES, { tema: "claro", fondo: "ninguno", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
-function filtroVista(v) {
-  if (v.tipo === "proyecto") return (t) => !t.completada && t.proyecto_id === v.id;
-  if (v.tipo === "etiqueta") return (t) => !t.completada && t.etiquetas.includes(v.id);
-  return LISTAS[v.tipo].filtro;
+function guardarAjustes() {
+  try {
+    localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
+  } catch {
+    avisar("La foto es demasiado grande para guardarla");
+    ajustes.foto = null;
+    ajustes.fondo = "ninguno";
+    localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
+  }
+  aplicarAjustes();
 }
 
-function tareasDe(v) {
-  return vivos("tareas").filter(filtroVista(v));
+const oscuroDelSistema = matchMedia("(prefers-color-scheme: dark)");
+oscuroDelSistema.addEventListener?.("change", () => aplicarAjustes());
+
+function temaActual() {
+  if (ajustes.tema === "auto") return oscuroDelSistema.matches ? "oscuro" : "claro";
+  return ajustes.tema;
 }
 
-// Orden: prioridad, luego fecha (sin fecha al final), luego la más antigua primero
-function ordenar(tareas) {
-  return tareas.sort((a, b) =>
-    a.prioridad - b.prioridad ||
-    (a.fecha ?? "9999").localeCompare(b.fecha ?? "9999") ||
-    a.creada - b.creada
-  );
+function aplicarAjustes() {
+  const tema = temaActual();
+  document.documentElement.dataset.tema = tema;
+  document.querySelector('meta[name="theme-color"]').content = tema === "oscuro" ? "#000000" : "#f2f2f7";
+  const fondo = $("fondo");
+  document.body.classList.toggle("con-foto", ajustes.fondo === "foto" && !!ajustes.foto);
+  if (ajustes.fondo === "foto" && ajustes.foto) {
+    fondo.style.background = `url(${ajustes.foto}) center / cover no-repeat`;
+  } else {
+    fondo.style.background = (FONDOS[ajustes.fondo] ?? FONDOS.ninguno)[tema];
+  }
 }
 
-function normalizar(texto) {
-  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
-
-// ---------- Pintar la pantalla ----------
+// ---------- Utilidades ----------
 
 // Crea un elemento HTML: h("div", { class: "x" }, "texto", otroElemento)
 function h(etiqueta, atributos = {}, ...hijos) {
@@ -221,180 +195,207 @@ function h(etiqueta, atributos = {}, ...hijos) {
   return el;
 }
 
-const colorCss = (color) => `var(--${color})`;
+function svg(html) {
+  const plantilla = document.createElement("template");
+  plantilla.innerHTML = html.trim();
+  return plantilla.content.firstChild;
+}
+
+const colorCss = (color) => `var(--${COLORES.includes(color) ? color : "azul"})`;
+const ICONO_CHECK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+const SIN_LISTA = "__sin_lista__"; // tareas antiguas que no están en ninguna lista
+
+function listas() {
+  return vivos("proyectos").sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+}
+
+function tareasDeLista(id) {
+  return vivos("tareas").filter((t) => (id === SIN_LISTA ? !t.proyecto_id || !db.proyectos[t.proyecto_id] || db.proyectos[t.proyecto_id].borrado : t.proyecto_id === id));
+}
+
+// ---------- Pantallas ----------
+
+let listaAbierta = null; // id de la lista abierta, o null en la pantalla de inicio
+
+function abrirLista(id) {
+  listaAbierta = id;
+  localStorage.setItem("lista-abierta", id ?? "");
+  $("pantalla-inicio").hidden = !!id;
+  $("pantalla-lista").hidden = !id;
+  window.scrollTo(0, 0);
+  pintar();
+}
+
+$("btn-volver").addEventListener("click", () => abrirLista(null));
 
 function pintar() {
-  pintarMenu();
-  pintarTareas();
+  if (listaAbierta && listaAbierta !== SIN_LISTA && !db.proyectos[listaAbierta]?.nombre) listaAbierta = null;
+  if (listaAbierta && db.proyectos[listaAbierta]?.borrado) listaAbierta = null;
+  $("pantalla-inicio").hidden = !!listaAbierta;
+  $("pantalla-lista").hidden = !listaAbierta;
+  if (listaAbierta) pintarLista();
+  else pintarInicio();
 }
 
-function pintarMenu() {
-  const contenedor = $("listas-inteligentes");
-  contenedor.replaceChildren(
-    ...Object.entries(LISTAS).map(([clave, lista]) =>
-      h("button", {
-        class: "lista-inteligente" + (vista.tipo === clave && !busqueda ? " activa" : ""),
-        onclick: () => abrirVista({ tipo: clave }),
-      },
-        h("span", { class: "icono", style: `background:${colorCss(lista.color)}` }, lista.icono),
-        h("span", { class: "contador" }, clave === "completadas" ? "" : String(tareasDe({ tipo: clave }).length)),
-        h("span", { class: "nombre" }, lista.nombre),
-      )
-    )
-  );
+function pintarInicio() {
+  const tarjetas = listas().map((l) => {
+    const pendientes = tareasDeLista(l.id).filter((t) => !t.completada);
+    const importantes = pendientes.filter((t) => t.prioridad === 1).length;
+    return h("button", {
+      class: "tarjeta-lista",
+      style: `background:${colorCss(l.color)}`,
+      onclick: () => abrirLista(l.id),
+    },
+      h("span", { class: "contador" }, String(pendientes.length)),
+      h("span", {},
+        h("div", { class: "nombre" }, l.nombre),
+        importantes ? h("div", { class: "sub" }, `★ ${importantes} importante${importantes > 1 ? "s" : ""}`) : null,
+      ),
+    );
+  });
 
-  const proyectos = vivos("proyectos").sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
-  $("lista-proyectos").replaceChildren(
-    ...proyectos.map((p) => h("li", {},
-      h("button", {
-        class: vista.tipo === "proyecto" && vista.id === p.id && !busqueda ? "activa" : "",
-        onclick: () => abrirVista({ tipo: "proyecto", id: p.id }),
-      },
-        h("span", { class: "punto", style: `background:${colorCss(p.color)}` }),
-        h("span", { class: "nombre" }, p.nombre),
-        h("span", { class: "contador" }, String(tareasDe({ tipo: "proyecto", id: p.id }).length)),
-      )
-    ))
-  );
+  const sueltas = tareasDeLista(SIN_LISTA).filter((t) => !t.completada).length;
+  if (sueltas) {
+    tarjetas.push(h("button", { class: "tarjeta-lista", style: "background:var(--gris)", onclick: () => abrirLista(SIN_LISTA) },
+      h("span", { class: "contador" }, String(sueltas)),
+      h("span", {}, h("div", { class: "nombre" }, "Sin lista")),
+    ));
+  }
 
-  const etiquetas = vivos("etiquetas").sort((a, b) => a.nombre.localeCompare(b.nombre));
-  $("lista-etiquetas").replaceChildren(
-    ...etiquetas.map((e) => h("li", {},
-      h("button", {
-        class: vista.tipo === "etiqueta" && vista.id === e.id && !busqueda ? "activa" : "",
-        onclick: () => abrirVista({ tipo: "etiqueta", id: e.id }),
-      },
-        h("span", { class: "almohadilla", style: `color:${colorCss(e.color)}` }, "@"),
-        h("span", { class: "nombre" }, e.nombre),
-        h("span", { class: "contador" }, String(tareasDe({ tipo: "etiqueta", id: e.id }).length)),
-      )
-    ))
-  );
-  $("estado-sync").textContent = estadoSync;
+  tarjetas.push(h("button", { class: "tarjeta-lista tarjeta-nueva", onclick: () => abrirFormLista(null) },
+    h("span", { class: "mas" }, "+"),
+    h("span", {}, "Nueva lista"),
+  ));
+  $("rejilla").replaceChildren(...tarjetas);
 }
 
-function tituloVista() {
-  if (busqueda) return `Buscar: “${busqueda}”`;
-  if (vista.tipo === "proyecto") return db.proyectos[vista.id]?.nombre ?? "";
-  if (vista.tipo === "etiqueta") return "@" + (db.etiquetas[vista.id]?.nombre ?? "");
-  return LISTAS[vista.tipo].nombre;
-}
+let completadasAbiertas = ajustes.completadasAbiertas;
 
-// Agrupa las tareas en secciones según la vista
-function secciones(tareas) {
-  if (busqueda) {
-    const pendientes = ordenar(tareas.filter((t) => !t.completada));
-    const hechas = tareas.filter((t) => t.completada);
-    return [["", pendientes], ["Completadas", hechas]];
-  }
-  if (vista.tipo === "hoy") {
-    const h0 = hoy();
-    return [["Vencidas", ordenar(tareas.filter((t) => t.fecha < h0))],
-            ["Hoy", ordenar(tareas.filter((t) => t.fecha === h0))]];
-  }
-  if (vista.tipo === "proximos") {
-    const porFecha = new Map();
-    for (const t of tareas.sort((a, b) => a.fecha.localeCompare(b.fecha))) {
-      const clave = t.fecha < hoy() ? "Vencidas" : fechaLegible(t.fecha);
-      if (!porFecha.has(clave)) porFecha.set(clave, []);
-      porFecha.get(clave).push(t);
-    }
-    return [...porFecha].map(([k, v]) => [k, ordenar(v)]);
-  }
-  if (vista.tipo === "todas") {
-    const grupos = [["Bandeja de entrada", ordenar(tareas.filter((t) => !t.proyecto_id))]];
-    for (const p of vivos("proyectos").sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre))) {
-      grupos.push([p.nombre, ordenar(tareas.filter((t) => t.proyecto_id === p.id))]);
-    }
-    return grupos;
-  }
-  if (vista.tipo === "completadas") {
-    return [["", tareas.sort((a, b) => (b.completada_en ?? 0) - (a.completada_en ?? 0)).slice(0, 200)]];
-  }
-  return [["", ordenar(tareas)]];
-}
+function pintarLista() {
+  const esSinLista = listaAbierta === SIN_LISTA;
+  const lista = esSinLista ? { nombre: "Sin lista", color: "gris" } : db.proyectos[listaAbierta];
+  const color = colorCss(lista.color);
+  $("pantalla-lista").style.setProperty("--color-lista", color);
+  $("titulo-lista").textContent = lista.nombre;
+  $("titulo-lista").style.color = color;
+  $("btn-editar-lista").hidden = esSinLista;
+  $("btn-nueva-tarea").hidden = esSinLista;
 
-function pintarTareas() {
-  $("titulo-lista").textContent = tituloVista();
-  $("btn-editar-lista").hidden = busqueda || !["proyecto", "etiqueta"].includes(vista.tipo);
-  $("captura").hidden = vista.tipo === "completadas" && !busqueda;
+  const tareas = tareasDeLista(listaAbierta);
+  // Pendientes: primero las importantes, luego por orden de creación
+  const pendientes = tareas.filter((t) => !t.completada)
+    .sort((a, b) => (a.prioridad === 1 ? 0 : 1) - (b.prioridad === 1 ? 0 : 1) || a.creada - b.creada);
+  const hechas = tareas.filter((t) => t.completada)
+    .sort((a, b) => (b.completada_en ?? 0) - (a.completada_en ?? 0));
 
-  let tareas;
-  if (busqueda) {
-    const q = normalizar(busqueda);
-    tareas = vivos("tareas").filter((t) => normalizar(`${t.titulo} ${t.notas ?? ""}`).includes(q));
+  const partes = [];
+  if (!pendientes.length && !hechas.length) {
+    partes.push(h("p", { class: "vacio" }, h("span", { class: "grande" }, "✓"), "Lista vacía.", h("br"), "Pulsa + para añadir una tarea."));
+  } else if (!pendientes.length) {
+    partes.push(h("p", { class: "vacio" }, h("span", { class: "grande" }, "🎉"), "¡Todo hecho!"));
   } else {
-    tareas = tareasDe(vista);
+    partes.push(h("div", { class: "bloque" }, pendientes.map(filaTarea)));
   }
 
-  const grupos = secciones(tareas).filter(([, lista]) => lista.length);
-  if (!grupos.length) {
-    $("tareas").replaceChildren(h("p", { class: "vacio" }, busqueda ? "Nada encontrado" : "Sin tareas 🎉"));
-    return;
+  if (hechas.length) {
+    partes.push(h("section", { class: "seccion-completadas" },
+      h("button", {
+        class: "cabecera-completadas" + (completadasAbiertas ? " abierta" : ""),
+        onclick: () => {
+          completadasAbiertas = !completadasAbiertas;
+          ajustes.completadasAbiertas = completadasAbiertas;
+          localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
+          pintar();
+        },
+      }, h("span", { class: "flecha" }, "›"), `Completadas (${hechas.length})`),
+      completadasAbiertas ? h("div", { class: "bloque" }, hechas.slice(0, 300).map(filaTarea)) : null,
+    ));
   }
-  $("tareas").replaceChildren(
-    ...grupos.map(([titulo, lista]) => h("section", { class: "grupo-tareas" },
-      titulo ? h("h3", { class: titulo === "Vencidas" ? "vencidas" : "" }, titulo) : null,
-      h("ul", {}, lista.map(filaTarea)),
-    ))
-  );
+  $("tareas").replaceChildren(...partes);
 }
 
 function filaTarea(t) {
-  const meta = [];
-  if (t.fecha) {
-    const clase = t.completada ? "" : t.fecha < hoy() ? "vencida" : t.fecha === hoy() ? "hoy" : "";
-    meta.push(h("span", { class: clase }, "📅 " + fechaLegible(t.fecha)));
-  }
-  const proyecto = db.proyectos[t.proyecto_id];
-  if (proyecto && !proyecto.borrado && !(vista.tipo === "proyecto" && !busqueda)) {
-    meta.push(h("span", {}, h("span", { style: `color:${colorCss(proyecto.color)}` }, "● "), proyecto.nombre));
-  }
-  for (const id of t.etiquetas) {
-    const e = db.etiquetas[id];
-    if (e && !e.borrado) meta.push(h("span", { style: `color:${colorCss(e.color)}` }, "@" + e.nombre));
-  }
-
-  return h("li", { class: "tarea" + (t.completada ? " completada" : "") },
-    h("button", {
-      class: `check p${t.prioridad}` + (t.completada ? " hecha" : ""),
-      "aria-label": t.completada ? "Marcar como pendiente" : "Completar",
-      onclick: () => alternarCompletada(t.id),
-    }),
-    h("button", { class: "tarea-cuerpo", onclick: () => abrirTarea(t.id) },
-      h("div", { class: "tarea-titulo" }, t.titulo),
-      t.notas ? h("div", { class: "tarea-notas" }, t.notas) : null,
-      meta.length ? h("div", { class: "tarea-meta" }, meta) : null,
+  const fila = h("div", { class: "fila-tarea" + (t.completada ? " completada" : "") },
+    h("div", { class: "detras" },
+      h("span", { class: "izq" }, t.completada ? "↺ Pendiente" : "✓ Hecha"),
+      h("span", { class: "der" }, "Borrar"),
+    ),
+    h("div", { class: "tarea" },
+      h("button", {
+        class: "check" + (t.completada ? " hecha" : ""),
+        "aria-label": t.completada ? "Marcar como pendiente" : "Completar",
+        onclick: () => alternarCompletada(t.id),
+      }, svg(ICONO_CHECK)),
+      h("button", { class: "tarea-cuerpo", onclick: () => verTarea(t.id) },
+        h("div", { class: "tarea-titulo" }, t.titulo, t.notas ? h("span", { class: "icono-notas" }, "☰") : null),
+      ),
+      h("button", {
+        class: "estrella" + (t.prioridad === 1 ? " activa" : ""),
+        "aria-label": t.prioridad === 1 ? "Quitar importante" : "Marcar como importante",
+        onclick: () => guardar("tareas", { ...db.tareas[t.id], prioridad: t.prioridad === 1 ? 4 : 1 }),
+      }, t.prioridad === 1 ? "★" : "☆"),
     ),
   );
+  activarDeslizar(fila, t.id);
+  return fila;
 }
 
-// ---------- Navegación ----------
+// ---------- Deslizar: derecha = completar, izquierda = borrar ----------
 
-function abrirVista(v) {
-  vista = v;
-  busqueda = "";
-  $("buscar").value = "";
-  document.body.classList.add("en-lista");
-  localStorage.setItem("vista", JSON.stringify(v));
-  pintar();
-  actualizarVistaPrevia();
+const UMBRAL = 90;
+
+function activarDeslizar(fila, id) {
+  const tarea = fila.querySelector(".tarea");
+  const detras = fila.querySelector(".detras");
+  const [izq, der] = detras.children;
+  let inicioX = 0, inicioY = 0, dx = 0, activo = false, decidido = false;
+
+  tarea.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    inicioX = e.clientX; inicioY = e.clientY; dx = 0; activo = true; decidido = false;
+  });
+
+  tarea.addEventListener("pointermove", (e) => {
+    if (!activo) return;
+    const mx = e.clientX - inicioX, my = e.clientY - inicioY;
+    if (!decidido) {
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      if (Math.abs(my) > Math.abs(mx)) { activo = false; return; } // está haciendo scroll
+      decidido = true;
+      tarea.setPointerCapture(e.pointerId);
+      tarea.classList.add("arrastrando");
+    }
+    dx = mx;
+    tarea.style.transform = `translateX(${dx}px)`;
+    const haciaDerecha = dx > 0;
+    detras.style.background = haciaDerecha ? "var(--verde)" : "var(--peligro)";
+    izq.style.opacity = haciaDerecha && dx > 30 ? 1 : 0;
+    der.style.opacity = !haciaDerecha && dx < -30 ? 1 : 0;
+  });
+
+  const soltar = () => {
+    if (!activo) return;
+    activo = false;
+    if (!decidido) return;
+    tarea.classList.remove("arrastrando");
+    // Evita que el "clic" al soltar abra la tarea
+    tarea.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
+    if (dx > UMBRAL) {
+      tarea.style.transform = "translateX(100%)";
+      setTimeout(() => alternarCompletada(id), 180);
+    } else if (dx < -UMBRAL) {
+      tarea.style.transform = "translateX(-100%)";
+      setTimeout(() => borrarTarea(id), 180);
+    } else {
+      tarea.style.transform = "";
+    }
+  };
+  tarea.addEventListener("pointerup", soltar);
+  tarea.addEventListener("pointercancel", () => { activo = false; tarea.classList.remove("arrastrando"); tarea.style.transform = ""; });
 }
 
-$("btn-volver").addEventListener("click", () => {
-  document.body.classList.remove("en-lista");
-  busqueda = "";
-  $("buscar").value = "";
-  pintar();
-});
-
-$("buscar").addEventListener("input", (e) => {
-  busqueda = e.target.value.trim();
-  if (busqueda) document.body.classList.add("en-lista");
-  pintar();
-});
-
-// ---------- Completar con "Deshacer" ----------
+// ---------- Acciones sobre tareas ----------
 
 let temporizadorAviso = null;
 
@@ -407,283 +408,231 @@ function avisar(texto, deshacer) {
   temporizadorAviso = setTimeout(() => ($("aviso").hidden = true), 4000);
 }
 
+function vibrar() {
+  navigator.vibrate?.(10);
+}
+
 function alternarCompletada(id) {
   const t = { ...db.tareas[id] };
   t.completada = !t.completada;
   t.completada_en = t.completada ? Date.now() : null;
   guardar("tareas", t);
-  if (t.completada) {
-    avisar("Tarea completada", () => alternarCompletada(id));
-  }
+  vibrar();
+  if (t.completada) avisar("Tarea completada", () => alternarCompletada(id));
 }
 
-// ---------- Captura rápida ----------
-// Escribe por ejemplo: "Llamar al banco #Trabajo @llamadas p1 mañana"
-//   #proyecto   @etiqueta   p1/p2/p3 (prioridad)   hoy / mañana
-
-function buscarPorNombre(tipo, nombre) {
-  const n = normalizar(nombre).replace(/[\s_-]/g, "");
-  return vivos(tipo).find((r) => normalizar(r.nombre).replace(/[\s_-]/g, "") === n);
+function borrarTarea(id) {
+  const anterior = { ...db.tareas[id] };
+  guardar("tareas", { ...anterior, borrado: true });
+  vibrar();
+  avisar("Tarea borrada", () => guardar("tareas", { ...anterior, borrado: false }));
 }
 
-function interpretar(texto) {
-  const r = { titulo: [], proyecto: null, etiquetas: [], prioridad: null, fecha: null };
-  for (const palabra of texto.split(/\s+/).filter(Boolean)) {
-    const minus = normalizar(palabra);
-    if (/^#.+/.test(palabra)) r.proyecto = palabra.slice(1).replace(/_/g, " ");
-    else if (/^@.+/.test(palabra)) r.etiquetas.push(palabra.slice(1));
-    else if (/^(p|!)[1-4]$/.test(minus)) r.prioridad = Number(minus[1]);
-    else if (minus === "hoy") r.fecha = hoy();
-    else if (minus === "manana") r.fecha = aTexto(sumarDias(new Date(), 1));
-    else r.titulo.push(palabra);
-  }
-  r.titulo = r.titulo.join(" ");
-  return r;
+// ---------- Hojas ----------
+
+function prepararHoja(dialogo) {
+  dialogo.addEventListener("click", (e) => { if (e.target === dialogo) dialogo.close(); });
+  dialogo.querySelectorAll("[data-cerrar]").forEach((b) => b.addEventListener("click", () => dialogo.close()));
+}
+document.querySelectorAll("dialog").forEach(prepararHoja);
+
+// Ver tarea
+let tareaViendo = null;
+
+function verTarea(id) {
+  const t = db.tareas[id];
+  tareaViendo = id;
+  $("ver-titulo").textContent = (t.prioridad === 1 ? "★ " : "") + t.titulo;
+  $("ver-notas").textContent = t.notas ?? "";
+  const creada = new Date(t.creada).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+  $("ver-info").textContent = `Creada el ${creada}` +
+    (t.completada && t.completada_en ? ` · hecha el ${new Date(t.completada_en).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}` : "");
+  $("dialogo-ver").showModal();
 }
 
-function actualizarVistaPrevia() {
-  const r = interpretar($("captura-texto").value);
-  const partes = [];
-  if (r.proyecto) {
-    const existe = buscarPorNombre("proyectos", r.proyecto);
-    partes.push(existe ? `Proyecto: ${existe.nombre}` : `Proyecto nuevo: ${r.proyecto}`);
-  }
-  for (const e of r.etiquetas) partes.push("@" + (buscarPorNombre("etiquetas", e)?.nombre ?? e));
-  if (r.prioridad) partes.push(`Prioridad ${r.prioridad}`);
-  if (r.fecha) partes.push(fechaLegible(r.fecha));
-  $("captura-vista-previa").replaceChildren(...partes.map((p) => h("span", { class: "etiqueta-previa" }, p)));
-}
-
-function obtenerOCrear(tipo, nombre) {
-  const existente = buscarPorNombre(tipo, nombre);
-  if (existente) return existente.id;
-  const nuevo = { id: nuevoId(), nombre, color: tipo === "proyectos" ? "azul" : "gris", orden: Date.now(), borrado: false };
-  guardar(tipo, nuevo);
-  return nuevo.id;
-}
-
-$("captura-texto").addEventListener("input", actualizarVistaPrevia);
-
-$("captura").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const r = interpretar($("captura-texto").value);
-  if (!r.titulo) return;
-
-  // Lo que no se indica se toma de la lista abierta
-  let proyecto_id = vista.tipo === "proyecto" && !busqueda ? vista.id : null;
-  const etiquetas = vista.tipo === "etiqueta" && !busqueda ? [vista.id] : [];
-  let fecha = vista.tipo === "hoy" && !busqueda ? hoy() : null;
-  let prioridad = vista.tipo === "importantes" && !busqueda ? 2 : 4;
-
-  if (r.proyecto) proyecto_id = obtenerOCrear("proyectos", r.proyecto);
-  for (const nombre of r.etiquetas) {
-    const id = obtenerOCrear("etiquetas", nombre);
-    if (!etiquetas.includes(id)) etiquetas.push(id);
-  }
-  if (r.fecha) fecha = r.fecha;
-  if (r.prioridad) prioridad = r.prioridad;
-
-  guardar("tareas", {
-    id: nuevoId(), titulo: r.titulo, notas: null, proyecto_id, etiquetas, prioridad, fecha,
-    completada: false, completada_en: null, creada: Date.now(), orden: 0, borrado: false,
-    recordatorio: null, recurrencia: null, padre_id: null,
-  });
-  $("captura-texto").value = "";
-  actualizarVistaPrevia();
+$("btn-editar-tarea").addEventListener("click", () => {
+  $("dialogo-ver").close();
+  abrirFormTarea(tareaViendo);
 });
 
-// ---------- Hoja de edición de tarea ----------
+$("btn-borrar-tarea").addEventListener("click", () => {
+  $("dialogo-ver").close();
+  borrarTarea(tareaViendo);
+});
 
+// Nueva / editar tarea
 let tareaEditando = null;
-let prioridadElegida = 4;
-let etiquetasElegidas = new Set();
 
-function cerrarAlPulsarFuera(dialogo) {
-  dialogo.addEventListener("click", (e) => { if (e.target === dialogo) dialogo.close(); });
-  dialogo.querySelector("[data-cerrar]").addEventListener("click", () => dialogo.close());
-}
-cerrarAlPulsarFuera($("dialogo-tarea"));
-cerrarAlPulsarFuera($("dialogo-grupo"));
-
-function pintarPrioridad() {
-  $("segmentos-prioridad").replaceChildren(
-    ...[1, 2, 3, 4].map((p) => h("button", {
-      type: "button",
-      class: p === prioridadElegida ? "elegido" : "",
-      style: p < 4 ? `color:var(--p${p})` : "",
-      onclick: () => { prioridadElegida = p; pintarPrioridad(); },
-    }, p < 4 ? `P${p}` : "—"))
-  );
-}
-
-function pintarChipsEtiquetas() {
-  const etiquetas = vivos("etiquetas").sort((a, b) => a.nombre.localeCompare(b.nombre));
-  $("chips-etiquetas").replaceChildren(
-    ...etiquetas.map((e) => h("button", {
-      type: "button",
-      class: "chip" + (etiquetasElegidas.has(e.id) ? " elegido" : ""),
-      onclick: () => {
-        etiquetasElegidas.has(e.id) ? etiquetasElegidas.delete(e.id) : etiquetasElegidas.add(e.id);
-        pintarChipsEtiquetas();
-      },
-    }, "@" + e.nombre)),
-    h("button", {
-      type: "button", class: "chip",
-      onclick: () => {
-        const nombre = prompt("Nombre de la nueva etiqueta");
-        if (nombre?.trim()) {
-          etiquetasElegidas.add(obtenerOCrear("etiquetas", nombre.trim().slice(0, 100)));
-          pintarChipsEtiquetas();
-        }
-      },
-    }, "+ Nueva"),
-  );
-}
-
-function abrirTarea(id) {
-  const t = db.tareas[id];
+function abrirFormTarea(id) {
   tareaEditando = id;
+  const t = id ? db.tareas[id] : null;
   const form = $("form-tarea");
-  form.titulo.value = t.titulo;
-  form.notas.value = t.notas ?? "";
-  form.fecha.value = t.fecha ?? "";
-
-  const proyectos = vivos("proyectos").sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
-  $("select-proyecto").replaceChildren(
-    h("option", { value: "" }, "Bandeja de entrada"),
-    ...proyectos.map((p) => h("option", { value: p.id }, p.nombre)),
-  );
-  form.proyecto_id.value = t.proyecto_id && db.proyectos[t.proyecto_id] && !db.proyectos[t.proyecto_id].borrado ? t.proyecto_id : "";
-
-  prioridadElegida = t.prioridad;
-  etiquetasElegidas = new Set(t.etiquetas.filter((e) => db.etiquetas[e] && !db.etiquetas[e].borrado));
-  pintarPrioridad();
-  pintarChipsEtiquetas();
-
-  const creada = new Date(t.creada).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
-  $("info-tarea").textContent = `Creada el ${creada}` +
-    (t.completada && t.completada_en ? ` · completada el ${new Date(t.completada_en).toLocaleDateString("es-ES")}` : "");
-  $("error-tarea").hidden = true;
+  $("titulo-form-tarea").textContent = t ? "Editar tarea" : "Nueva tarea";
+  form.titulo.value = t?.titulo ?? "";
+  form.notas.value = t?.notas ?? "";
+  form.importante.checked = t?.prioridad === 1;
   $("dialogo-tarea").showModal();
+  form.titulo.focus();
 }
 
-$("btn-quitar-fecha").addEventListener("click", () => ($("form-tarea").fecha.value = ""));
+$("btn-nueva-tarea").addEventListener("click", () => abrirFormTarea(null));
 
 $("form-tarea").addEventListener("submit", (e) => {
   const form = e.target;
   const titulo = form.titulo.value.trim();
-  if (!titulo) {
-    e.preventDefault();
-    $("error-tarea").textContent = "El título no puede estar vacío";
-    $("error-tarea").hidden = false;
-    return;
-  }
-  guardar("tareas", {
-    ...db.tareas[tareaEditando],
+  if (!titulo) return e.preventDefault();
+  const cambios = {
     titulo,
     notas: form.notas.value.trim() || null,
-    proyecto_id: form.proyecto_id.value || null,
-    fecha: form.fecha.value || null,
-    prioridad: prioridadElegida,
-    etiquetas: [...etiquetasElegidas],
-  });
+    prioridad: form.importante.checked ? 1 : 4,
+  };
+  if (tareaEditando) {
+    guardar("tareas", { ...db.tareas[tareaEditando], ...cambios });
+  } else {
+    guardar("tareas", {
+      id: nuevoId(), ...cambios, proyecto_id: listaAbierta, etiquetas: [], fecha: null,
+      completada: false, completada_en: null, creada: Date.now(), orden: 0, borrado: false,
+      recordatorio: null, recurrencia: null, padre_id: null,
+    });
+  }
 });
 
-$("btn-eliminar-tarea").addEventListener("click", () => {
-  const id = tareaEditando;
-  const anterior = { ...db.tareas[id] };
-  guardar("tareas", { ...anterior, borrado: true });
-  $("dialogo-tarea").close();
-  avisar("Tarea eliminada", () => guardar("tareas", { ...anterior, borrado: false }));
-});
-
-// ---------- Hoja de proyecto / etiqueta ----------
-
-let grupoEditando = null; // { tipo: "proyectos" | "etiquetas", id: null = nuevo }
+// Nueva / editar lista
+let listaEditando = null;
 let colorElegido = "azul";
 
-function pintarColores() {
-  $("colores").replaceChildren(
+function pintarColores(contenedor, elegido, alElegir) {
+  contenedor.replaceChildren(
     ...COLORES.map((c) => h("button", {
       type: "button", "aria-label": c,
-      class: "color" + (c === colorElegido ? " elegido" : ""),
+      class: "color" + (c === elegido ? " elegido" : ""),
       style: `background:${colorCss(c)}`,
-      onclick: () => { colorElegido = c; pintarColores(); },
+      onclick: () => alElegir(c),
     }))
   );
 }
 
-function abrirGrupo(tipo, id = null) {
-  grupoEditando = { tipo, id };
-  const registro = id ? db[tipo][id] : null;
-  const singular = tipo === "proyectos" ? "proyecto" : "etiqueta";
-  $("titulo-form-grupo").textContent = registro ? `Editar ${singular}` : (tipo === "proyectos" ? "Nuevo proyecto" : "Nueva etiqueta");
-  $("form-grupo").nombre.value = registro?.nombre ?? "";
-  colorElegido = registro?.color ?? (tipo === "proyectos" ? "azul" : "gris");
-  pintarColores();
-  $("btn-eliminar-grupo").hidden = !registro;
-  $("btn-eliminar-grupo").textContent = `Eliminar ${singular}`;
-  $("dialogo-grupo").showModal();
+function pintarColoresLista() {
+  pintarColores($("colores"), colorElegido, (c) => { colorElegido = c; pintarColoresLista(); });
 }
 
-$("btn-nuevo-proyecto").addEventListener("click", () => abrirGrupo("proyectos"));
-$("btn-nueva-etiqueta").addEventListener("click", () => abrirGrupo("etiquetas"));
-$("btn-editar-lista").addEventListener("click", () =>
-  abrirGrupo(vista.tipo === "proyecto" ? "proyectos" : "etiquetas", vista.id)
-);
+function abrirFormLista(id) {
+  listaEditando = id;
+  const l = id ? db.proyectos[id] : null;
+  $("titulo-form-lista").textContent = l ? "Editar lista" : "Nueva lista";
+  $("form-lista").nombre.value = l?.nombre ?? "";
+  colorElegido = l?.color ?? ajustes.colorDefecto;
+  pintarColoresLista();
+  $("btn-borrar-lista").hidden = !l;
+  $("dialogo-lista").showModal();
+}
 
-$("form-grupo").addEventListener("submit", (e) => {
+$("btn-editar-lista").addEventListener("click", () => abrirFormLista(listaAbierta));
+
+$("form-lista").addEventListener("submit", (e) => {
   const nombre = e.target.nombre.value.trim();
   if (!nombre) return e.preventDefault();
-  const { tipo, id } = grupoEditando;
-  const registro = id
-    ? { ...db[tipo][id], nombre, color: colorElegido }
-    : { id: nuevoId(), nombre, color: colorElegido, orden: Date.now(), borrado: false };
-  guardar(tipo, registro);
-  if (!id) abrirVista({ tipo: tipo === "proyectos" ? "proyecto" : "etiqueta", id: registro.id });
+  if (listaEditando) {
+    guardar("proyectos", { ...db.proyectos[listaEditando], nombre, color: colorElegido });
+  } else {
+    const nueva = { id: nuevoId(), nombre, color: colorElegido, orden: Date.now(), borrado: false };
+    guardar("proyectos", nueva);
+    abrirLista(nueva.id);
+  }
 });
 
-$("btn-eliminar-grupo").addEventListener("click", () => {
-  const { tipo, id } = grupoEditando;
-  const registro = db[tipo][id];
-  if (tipo === "proyectos") {
-    const tareas = vivos("tareas").filter((t) => t.proyecto_id === id);
-    if (!confirm(`¿Eliminar el proyecto “${registro.nombre}” y sus ${tareas.length} tarea(s)?`)) return;
-    for (const t of tareas) guardar("tareas", { ...t, borrado: true });
-  } else {
-    if (!confirm(`¿Eliminar la etiqueta “${registro.nombre}”? Las tareas no se borran.`)) return;
-    for (const t of vivos("tareas").filter((t) => t.etiquetas.includes(id))) {
-      guardar("tareas", { ...t, etiquetas: t.etiquetas.filter((e) => e !== id) });
-    }
+$("btn-borrar-lista").addEventListener("click", () => {
+  const l = db.proyectos[listaEditando];
+  const tareas = tareasDeLista(listaEditando);
+  const texto = tareas.length
+    ? `¿Borrar la lista “${l.nombre}” y sus ${tareas.length} tarea(s)?`
+    : `¿Borrar la lista “${l.nombre}”?`;
+  if (!confirm(texto)) return;
+  for (const t of tareas) guardar("tareas", { ...t, borrado: true });
+  guardar("proyectos", { ...l, borrado: true });
+  $("dialogo-lista").close();
+  abrirLista(null);
+});
+
+// Ajustes
+function pintarAjustes() {
+  $("segmentos-tema").replaceChildren(
+    ...[["claro", "Claro"], ["oscuro", "Oscuro"], ["auto", "Auto"]].map(([valor, texto]) =>
+      h("button", {
+        type: "button", class: ajustes.tema === valor ? "elegido" : "",
+        onclick: () => { ajustes.tema = valor; guardarAjustes(); pintarAjustes(); },
+      }, texto)
+    )
+  );
+
+  const tema = temaActual();
+  const muestras = Object.entries(FONDOS).map(([clave, f]) =>
+    h("button", {
+      type: "button",
+      class: "muestra-fondo" + (ajustes.fondo === clave ? " elegido" : ""),
+      style: `background:${f[tema]}`,
+      onclick: () => { ajustes.fondo = clave; guardarAjustes(); pintarAjustes(); },
+    }, f.nombre)
+  );
+  if (ajustes.foto) {
+    muestras.push(h("button", {
+      type: "button",
+      class: "muestra-fondo" + (ajustes.fondo === "foto" ? " elegido" : ""),
+      style: `background-image:url(${ajustes.foto})`,
+      onclick: () => { ajustes.fondo = "foto"; guardarAjustes(); pintarAjustes(); },
+    }, "Tu foto"));
   }
-  guardar(tipo, { ...registro, borrado: true });
-  $("dialogo-grupo").close();
-  abrirVista({ tipo: "bandeja" });
-  document.body.classList.remove("en-lista");
+  $("fondos").replaceChildren(...muestras);
+
+  pintarColores($("colores-defecto"), ajustes.colorDefecto, (c) => {
+    ajustes.colorDefecto = c; guardarAjustes(); pintarAjustes();
+  });
+}
+
+$("btn-ajustes").addEventListener("click", () => {
+  pintarAjustes();
+  mostrarEstadoSync();
+  $("dialogo-ajustes").showModal();
+});
+
+// Foto de fondo: se reduce para que ocupe poco y se guarda en este dispositivo
+$("input-foto").addEventListener("change", async (e) => {
+  const archivo = e.target.files[0];
+  e.target.value = "";
+  if (!archivo) return;
+  try {
+    const imagen = await createImageBitmap(archivo);
+    const escala = Math.min(1, 1400 / Math.max(imagen.width, imagen.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(imagen.width * escala);
+    lienzo.height = Math.round(imagen.height * escala);
+    lienzo.getContext("2d").drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+    ajustes.foto = lienzo.toDataURL("image/jpeg", 0.8);
+    ajustes.fondo = "foto";
+    guardarAjustes();
+    pintarAjustes();
+  } catch {
+    avisar("No se pudo abrir esa imagen");
+  }
 });
 
 // ---------- Atajos de teclado (ordenador) ----------
 
 document.addEventListener("keydown", (e) => {
-  const escribiendo = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName);
+  const escribiendo = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
   if (escribiendo || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
-  if (e.key === "q" || e.key === "n") {
+  if ((e.key === "n" || e.key === "q") && listaAbierta && listaAbierta !== SIN_LISTA) {
     e.preventDefault();
-    document.body.classList.add("en-lista");
-    $("captura-texto").focus();
-  } else if (e.key === "/") {
-    e.preventDefault();
-    $("buscar").focus();
+    abrirFormTarea(null);
+  } else if (e.key === "Escape" && listaAbierta) {
+    abrirLista(null);
   }
 });
 
 // ---------- Arranque ----------
 
-try {
-  const guardada = JSON.parse(localStorage.getItem("vista"));
-  if (guardada && (LISTAS[guardada.tipo] || db[guardada.tipo + "s"]?.[guardada.id])) vista = guardada;
-} catch { /* sin vista guardada */ }
-
+aplicarAjustes();
+listaAbierta = localStorage.getItem("lista-abierta") || null;
 pintar();
 mostrarEstadoSync();
 sincronizar();

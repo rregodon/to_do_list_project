@@ -1,11 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-tema="claro">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Tareas</title>
-  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f2f2f7">
   <!-- Para poder "instalarla" en la pantalla de inicio del iPhone/iPad -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -16,103 +15,128 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Columna izquierda: listas, proyectos y etiquetas -->
-  <nav class="menu" id="menu">
-    <div class="menu-cabecera">
-      <h1>Tareas</h1>
-    </div>
-    <input id="buscar" class="buscar" type="search" placeholder="Buscar" autocomplete="off">
+  <div class="fondo" id="fondo"></div>
 
-    <div class="listas-inteligentes" id="listas-inteligentes"></div>
-
-    <div class="seccion-titulo">
-      <span>Proyectos</span>
-      <button id="btn-nuevo-proyecto" class="boton-icono" aria-label="Nuevo proyecto">+</button>
-    </div>
-    <ul class="lista-menu" id="lista-proyectos"></ul>
-
-    <div class="seccion-titulo">
-      <span>Etiquetas</span>
-      <button id="btn-nueva-etiqueta" class="boton-icono" aria-label="Nueva etiqueta">+</button>
-    </div>
-    <ul class="lista-menu" id="lista-etiquetas"></ul>
-
+  <!-- Pantalla 1: las listas en recuadros -->
+  <section class="pantalla" id="pantalla-inicio">
+    <header class="cabecera">
+      <h1>Mis listas</h1>
+      <button id="btn-ajustes" class="boton-redondo" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </header>
+    <div class="rejilla" id="rejilla"></div>
     <p class="estado-sync" id="estado-sync"></p>
-  </nav>
+  </section>
 
-  <!-- Columna derecha: las tareas de la lista elegida -->
-  <main class="panel" id="panel">
-    <header class="panel-cabecera">
-      <button id="btn-volver" class="boton-texto volver">‹ Listas</button>
-      <button id="btn-editar-lista" class="boton-texto" hidden>Editar</button>
+  <!-- Pantalla 2: las tareas de una lista -->
+  <section class="pantalla" id="pantalla-lista" hidden>
+    <header class="cabecera cabecera-lista">
+      <button id="btn-volver" class="boton-redondo" aria-label="Volver">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button id="btn-editar-lista" class="boton-redondo" aria-label="Editar lista">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      </button>
     </header>
     <h2 id="titulo-lista" class="titulo-lista"></h2>
     <div id="tareas" class="tareas"></div>
+    <button id="btn-nueva-tarea" class="boton-flotante" aria-label="Nueva tarea">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </section>
 
-    <form id="captura" class="captura" autocomplete="off">
-      <div class="captura-fila">
-        <input id="captura-texto" placeholder="Añadir tarea" maxlength="500" enterkeyhint="done">
-        <button type="submit" class="boton-mas" aria-label="Añadir">+</button>
-      </div>
-      <div id="captura-vista-previa" class="vista-previa"></div>
-    </form>
-  </main>
-
-  <!-- Hoja para editar una tarea -->
+  <!-- Hoja: nueva tarea / editar tarea -->
   <dialog id="dialogo-tarea" class="hoja">
     <form id="form-tarea" method="dialog">
       <div class="hoja-cabecera">
         <button type="button" class="boton-texto" data-cerrar>Cancelar</button>
-        <strong id="titulo-form-tarea">Tarea</strong>
+        <strong id="titulo-form-tarea">Nueva tarea</strong>
         <button type="submit" class="boton-texto negrita">Guardar</button>
       </div>
-
       <div class="grupo">
-        <input name="titulo" placeholder="Título" required maxlength="500" autocomplete="off">
-        <textarea name="notas" placeholder="Notas" rows="3" maxlength="5000"></textarea>
+        <input name="titulo" placeholder="¿Qué hay que hacer?" required maxlength="500" autocomplete="off" enterkeyhint="done">
+        <textarea name="notas" placeholder="Descripción (opcional)" rows="4" maxlength="5000"></textarea>
       </div>
-
       <div class="grupo">
-        <label class="fila">Proyecto <select name="proyecto_id" id="select-proyecto"></select></label>
-        <div class="fila">Prioridad
-          <div class="segmentos" id="segmentos-prioridad"></div>
-        </div>
-        <label class="fila">Fecha
-          <span class="fecha-con-borrar">
-            <input type="date" name="fecha">
-            <button type="button" class="boton-texto" id="btn-quitar-fecha">Quitar</button>
-          </span>
+        <label class="fila">
+          <span>★ Importante</span>
+          <input type="checkbox" name="importante" class="interruptor">
         </label>
       </div>
-
-      <div class="grupo">
-        <div class="fila fila-etiquetas">Etiquetas
-          <div class="chips" id="chips-etiquetas"></div>
-        </div>
-      </div>
-
-      <p class="error" id="error-tarea" hidden></p>
-      <p class="info" id="info-tarea"></p>
-      <button type="button" id="btn-eliminar-tarea" class="boton-eliminar">Eliminar tarea</button>
     </form>
   </dialog>
 
-  <!-- Hoja para crear/editar un proyecto o una etiqueta -->
-  <dialog id="dialogo-grupo" class="hoja hoja-pequena">
-    <form id="form-grupo" method="dialog">
+  <!-- Hoja: ver una tarea (con Editar y Borrar) -->
+  <dialog id="dialogo-ver" class="hoja">
+    <div class="hoja-contenido">
+      <div class="hoja-cabecera">
+        <span></span>
+        <span></span>
+        <button type="button" class="boton-texto negrita" data-cerrar>Cerrar</button>
+      </div>
+      <h3 id="ver-titulo" class="ver-titulo"></h3>
+      <p id="ver-notas" class="ver-notas"></p>
+      <p id="ver-info" class="info"></p>
+      <div class="botones-accion">
+        <button type="button" id="btn-editar-tarea" class="boton-accion">Editar</button>
+        <button type="button" id="btn-borrar-tarea" class="boton-accion peligro">Borrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Hoja: crear/editar lista -->
+  <dialog id="dialogo-lista" class="hoja">
+    <form id="form-lista" method="dialog">
       <div class="hoja-cabecera">
         <button type="button" class="boton-texto" data-cerrar>Cancelar</button>
-        <strong id="titulo-form-grupo"></strong>
+        <strong id="titulo-form-lista">Nueva lista</strong>
         <button type="submit" class="boton-texto negrita">Guardar</button>
       </div>
       <div class="grupo">
-        <input name="nombre" placeholder="Nombre" required maxlength="100" autocomplete="off">
+        <input name="nombre" placeholder="Nombre de la lista" required maxlength="100" autocomplete="off">
       </div>
+      <p class="etiqueta-grupo">Color</p>
       <div class="grupo">
         <div class="colores" id="colores"></div>
       </div>
-      <button type="button" id="btn-eliminar-grupo" class="boton-eliminar">Eliminar</button>
+      <button type="button" id="btn-borrar-lista" class="boton-accion peligro ancho">Borrar lista</button>
     </form>
+  </dialog>
+
+  <!-- Hoja: ajustes -->
+  <dialog id="dialogo-ajustes" class="hoja">
+    <div class="hoja-contenido">
+      <div class="hoja-cabecera">
+        <span></span>
+        <strong>Ajustes</strong>
+        <button type="button" class="boton-texto negrita" data-cerrar>Listo</button>
+      </div>
+
+      <p class="etiqueta-grupo">Apariencia</p>
+      <div class="grupo">
+        <div class="fila">
+          <span>Modo</span>
+          <div class="segmentos" id="segmentos-tema"></div>
+        </div>
+      </div>
+
+      <p class="etiqueta-grupo">Fondo</p>
+      <div class="grupo">
+        <div class="fondos" id="fondos"></div>
+        <label class="fila fila-boton">
+          <span>Elegir una foto…</span>
+          <input type="file" accept="image/*" id="input-foto" hidden>
+        </label>
+      </div>
+
+      <p class="etiqueta-grupo">Color de las listas nuevas</p>
+      <div class="grupo">
+        <div class="colores" id="colores-defecto"></div>
+      </div>
+
+      <p class="info" id="info-ajustes"></p>
+    </div>
   </dialog>
 
   <div id="aviso" class="aviso" hidden>
