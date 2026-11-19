@@ -134,7 +134,7 @@ function mostrarEstadoSync(texto) {
 // ---------- Ajustes (de este dispositivo) ----------
 
 const FONDOS = {
-  ninguno:   { nombre: "Liso",      claro: "#f2f2f7", oscuro: "#000000" },
+  ninguno:   { nombre: "Liso",      claro: "var(--fondo)", oscuro: "var(--fondo)" },
   arena:     { nombre: "Arena",     claro: "#f4eee4", oscuro: "#1d1a16" },
   salvia:    { nombre: "Salvia",    claro: "#e6eee4", oscuro: "#151b15" },
   cielo:     { nombre: "Cielo",     claro: "#e4edf7", oscuro: "#121821" },
@@ -145,7 +145,7 @@ const FONDOS = {
   noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { tema: "claro", fondo: "ninguno", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "clasico", tema: "claro", fondo: "ninguno", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
 function guardarAjustes() {
   try {
@@ -170,6 +170,7 @@ function temaActual() {
 function aplicarAjustes() {
   const tema = temaActual();
   document.documentElement.dataset.tema = tema;
+  document.documentElement.dataset.estilo = ajustes.estilo;
   document.querySelector('meta[name="theme-color"]').content = tema === "oscuro" ? "#000000" : "#f2f2f7";
   const fondo = $("fondo");
   document.body.classList.toggle("con-foto", ajustes.fondo === "foto" && !!ajustes.foto);
@@ -242,22 +243,25 @@ function pintarInicio() {
   const tarjetas = listas().map((l) => {
     const pendientes = tareasDeLista(l.id).filter((t) => !t.completada);
     const importantes = pendientes.filter((t) => t.prioridad === 1).length;
+    const total = tareasDeLista(l.id).length;
+    const hecho = total ? Math.round(((total - pendientes.length) / total) * 100) : 0;
     return h("button", {
       class: "tarjeta-lista",
-      style: `background:${colorCss(l.color)}`,
+      style: `--c:${colorCss(l.color)};background:var(--c)`,
       onclick: () => abrirLista(l.id),
     },
       h("span", { class: "contador" }, String(pendientes.length)),
       h("span", {},
         h("div", { class: "nombre" }, l.nombre),
         importantes ? h("div", { class: "sub" }, `★ ${importantes} importante${importantes > 1 ? "s" : ""}`) : null,
+        h("div", { class: "progreso" }, h("i", { style: `width:${hecho}%` })),
       ),
     );
   });
 
   const sueltas = tareasDeLista(SIN_LISTA).filter((t) => !t.completada).length;
   if (sueltas) {
-    tarjetas.push(h("button", { class: "tarjeta-lista", style: "background:var(--gris)", onclick: () => abrirLista(SIN_LISTA) },
+    tarjetas.push(h("button", { class: "tarjeta-lista", style: "--c:var(--gris);background:var(--c)", onclick: () => abrirLista(SIN_LISTA) },
       h("span", { class: "contador" }, String(sueltas)),
       h("span", {}, h("div", { class: "nombre" }, "Sin lista")),
     ));
@@ -555,7 +559,16 @@ $("btn-borrar-lista").addEventListener("click", () => {
 });
 
 // Ajustes
+const ESTILOS = [["clasico", "Clásico"], ["bento", "Bento"], ["cristal", "Cristal"], ["papel", "Papel"], ["monocromo", "Monocromo"]];
+
 function pintarAjustes() {
+  $("estilos").replaceChildren(
+    ...ESTILOS.map(([valor, texto]) => h("button", {
+      type: "button", class: "estilo-opcion" + (ajustes.estilo === valor ? " elegido" : ""),
+      onclick: () => { ajustes.estilo = valor; guardarAjustes(); pintarAjustes(); pintar(); },
+    }, texto))
+  );
+
   $("segmentos-tema").replaceChildren(
     ...[["claro", "Claro"], ["oscuro", "Oscuro"], ["auto", "Auto"]].map(([valor, texto]) =>
       h("button", {

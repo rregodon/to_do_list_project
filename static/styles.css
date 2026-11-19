@@ -283,3 +283,103 @@ body.con-foto .cabecera h1, body.con-foto .titulo-lista, body.con-foto .cabecera
 body.con-foto .estado-sync, body.con-foto .vacio {
   color: #fff !important; text-shadow: 0 1px 8px rgb(0 0 0 / .45);
 }
+
+/* ---------- Barra de progreso en los recuadros (la usan algunos estilos) ---------- */
+.progreso { display: none; height: 5px; border-radius: 3px; background: rgb(255 255 255 / .35); overflow: hidden; margin-top: 10px; }
+.progreso i { display: block; height: 100%; background: #fff; border-radius: 3px; }
+
+/* =====================================================================
+   ESTILOS (se eligen en Ajustes)
+   ===================================================================== */
+
+/* ---------- Papel: cálido, como una libreta ---------- */
+html[data-estilo="papel"] { --fondo: #f5efe3; --tarjeta: #fffdf7; --tarjeta-solida: #fffdf7; --separador: #e7dcc8; --sombra: none; --texto: #3b3328; --acento: #b5651d; }
+html[data-estilo="papel"][data-tema="oscuro"] { --fondo: #1d1a15; --tarjeta: #29251e; --tarjeta-solida: #29251e; --separador: #3d362b; --texto: #efe6d6; }
+html[data-estilo="papel"] .cabecera h1, html[data-estilo="papel"] .titulo-lista, html[data-estilo="papel"] .tarjeta-lista .nombre {
+  font-family: "New York", Georgia, "Times New Roman", serif; font-weight: 700; letter-spacing: 0;
+}
+html[data-estilo="papel"] .tarjeta-lista {
+  background: var(--tarjeta) !important; color: var(--texto); box-shadow: none;
+  border: 1px solid var(--separador); border-top: 7px solid var(--c); border-radius: 14px;
+}
+html[data-estilo="papel"] .tarjeta-lista::after { display: none; }
+html[data-estilo="papel"] .tarjeta-lista .contador { color: var(--c); }
+html[data-estilo="papel"] .bloque { border: 1px solid var(--separador); border-radius: 14px; }
+html[data-estilo="papel"] .fila-tarea + .fila-tarea { border-top: 1px dashed var(--separador); }
+html[data-estilo="papel"] .check { border-radius: 4px; }
+html[data-estilo="papel"] .boton-redondo { background: var(--tarjeta); border: 1px solid var(--separador); }
+html[data-estilo="papel"] .tarjeta-nueva { border: 1.5px dashed var(--separador); border-top-width: 1.5px; }
+
+/* ---------- Cristal: tarjetas translúcidas sobre un degradado ---------- */
+html[data-estilo="cristal"] { --tarjeta: rgb(255 255 255 / .28); --tarjeta-solida: rgb(255 255 255 / .55); --separador: rgb(255 255 255 / .45); --sombra: 0 8px 30px rgb(0 0 0 / .08); }
+html[data-estilo="cristal"][data-tema="oscuro"] { --tarjeta: rgb(255 255 255 / .08); --tarjeta-solida: rgb(40 40 46 / .55); --separador: rgb(255 255 255 / .12); }
+html[data-estilo="cristal"] .tarjeta-lista {
+  background: rgb(255 255 255 / .25) !important; color: var(--texto);
+  border: 1px solid rgb(255 255 255 / .55); box-shadow: var(--sombra);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+}
+html[data-estilo="cristal"][data-tema="oscuro"] .tarjeta-lista { background: rgb(255 255 255 / .08) !important; border-color: rgb(255 255 255 / .15); }
+html[data-estilo="cristal"] .tarjeta-lista::before {
+  content: ""; width: 34px; height: 34px; border-radius: 11px; background: var(--c);
+  position: absolute; right: 14px; top: 14px; box-shadow: 0 4px 12px var(--c);
+}
+html[data-estilo="cristal"] .tarjeta-lista::after { display: none; }
+html[data-estilo="cristal"] .progreso { display: block; background: rgb(0 0 0 / .08); }
+html[data-estilo="cristal"] .progreso i { background: var(--c); }
+html[data-estilo="cristal"] .bloque, html[data-estilo="cristal"] .tarea { background: transparent; }
+html[data-estilo="cristal"] .bloque {
+  background: rgb(255 255 255 / .35); border: 1px solid rgb(255 255 255 / .55);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+}
+html[data-estilo="cristal"][data-tema="oscuro"] .bloque { background: rgb(255 255 255 / .07); border-color: rgb(255 255 255 / .12); }
+html[data-estilo="cristal"] .fila-tarea .tarea { background: transparent; }
+html[data-estilo="cristal"] .check { border-radius: 8px; }
+
+/* ---------- Monocromo: blanco y negro, mucho aire ---------- */
+html[data-estilo="monocromo"] { --fondo: #ffffff; --tarjeta: #ffffff; --tarjeta-solida: #ffffff; --separador: #ececec; --sombra: none; --texto: #111; --acento: #111; }
+html[data-estilo="monocromo"][data-tema="oscuro"] { --fondo: #000; --tarjeta: #000; --tarjeta-solida: #000; --separador: #222; --texto: #f5f5f5; --acento: #f5f5f5; }
+html[data-estilo="monocromo"] .rejilla { grid-template-columns: 1fr; gap: 0; }
+html[data-estilo="monocromo"] .tarjeta-lista {
+  aspect-ratio: auto; flex-direction: row-reverse; align-items: center; justify-content: space-between;
+  background: transparent !important; color: var(--texto); box-shadow: none; border-radius: 0;
+  border-bottom: 1px solid var(--separador); padding: 20px 4px;
+}
+html[data-estilo="monocromo"] .tarjeta-lista::after { display: none; }
+html[data-estilo="monocromo"] .tarjeta-lista .nombre { font-size: 22px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+html[data-estilo="monocromo"] .tarjeta-lista .nombre::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+html[data-estilo="monocromo"] .tarjeta-lista .contador { font-size: 17px; font-weight: 500; color: var(--texto-suave); }
+html[data-estilo="monocromo"] .tarjeta-lista .sub { color: var(--texto-suave); margin-left: 22px; }
+html[data-estilo="monocromo"] .tarjeta-nueva { border: 0; border-bottom: 1px solid var(--separador); flex-direction: row; justify-content: flex-start; gap: 12px; color: var(--texto-suave); }
+html[data-estilo="monocromo"] .tarjeta-nueva .mas { font-size: 26px; }
+html[data-estilo="monocromo"] .bloque { border-radius: 0; }
+html[data-estilo="monocromo"] .fila-tarea { border-bottom: 1px solid var(--separador); }
+html[data-estilo="monocromo"] .fila-tarea + .fila-tarea { border-top: 0; }
+html[data-estilo="monocromo"] .tarea { padding-left: 4px; }
+html[data-estilo="monocromo"] .check { border-radius: 6px; border-width: 1.5px; border-color: var(--texto); }
+html[data-estilo="monocromo"] .check.hecha { background: var(--texto); color: var(--fondo); }
+html[data-estilo="monocromo"] .titulo-lista { color: var(--texto) !important; font-size: 38px; }
+html[data-estilo="monocromo"] .boton-flotante { background: var(--texto); color: var(--fondo); }
+html[data-estilo="monocromo"] .boton-redondo { box-shadow: none; background: transparent; }
+html[data-estilo="monocromo"] .estrella.activa { color: var(--texto); }
+
+/* ---------- Bento: recuadros de distintos tamaños con progreso ---------- */
+html[data-estilo="bento"] .rejilla { grid-template-columns: 1fr 1fr; gap: 12px; }
+html[data-estilo="bento"] .tarjeta-lista {
+  aspect-ratio: auto; min-height: 150px; border-radius: 28px;
+  background: color-mix(in srgb, var(--c) 16%, var(--tarjeta-solida)) !important;
+  color: color-mix(in srgb, var(--c) 75%, var(--texto)); box-shadow: none;
+}
+html[data-estilo="bento"] .tarjeta-lista:first-child { grid-column: span 2; min-height: 170px; }
+html[data-estilo="bento"] .tarjeta-lista:nth-child(4n) { grid-row: span 2; }
+html[data-estilo="bento"] .tarjeta-lista::after { display: none; }
+html[data-estilo="bento"] .tarjeta-lista .contador { font-size: 44px; font-weight: 800; }
+html[data-estilo="bento"] .progreso { display: block; background: color-mix(in srgb, var(--c) 20%, transparent); }
+html[data-estilo="bento"] .progreso i { background: var(--c); }
+html[data-estilo="bento"] .tarjeta-nueva { min-height: 150px; background: transparent !important; }
+html[data-estilo="bento"] .bloque { border-radius: 24px; }
+html[data-estilo="bento"] .check { border-radius: 9px; width: 26px; height: 26px; }
+
+.estilos { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
+.estilo-opcion { padding: 8px 14px; border-radius: 20px; border: 1px solid var(--separador); font-size: 15px; }
+.estilo-opcion.elegido { background: var(--acento); border-color: var(--acento); color: #fff; }
+html[data-estilo="monocromo"] .estilo-opcion.elegido { color: var(--fondo); }
