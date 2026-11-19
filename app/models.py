@@ -2,7 +2,8 @@
 
 Todos los registros tienen:
 - id: lo genera el móvil/ordenador (así se pueden crear tareas sin conexión).
-- actualizado: momento del último cambio (milisegundos). Si dos dispositivos
+- actualizado: momento del último cambio (milisegundos desde 1970; son
+  números muy grandes, por eso se guardan como BigInteger). Si dos dispositivos
   cambian lo mismo, gana el cambio más reciente.
 - borrado: en vez de borrar de verdad, se marca, para que el borrado
   llegue también a los demás dispositivos.
@@ -12,7 +13,7 @@ Todos los registros tienen:
 import re
 
 from pydantic import field_validator
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, BigInteger, Column
 from sqlmodel import Field, SQLModel
 
 COLORES = ["gris", "rojo", "naranja", "amarillo", "verde", "azul", "morado", "rosa"]
@@ -22,7 +23,7 @@ PATRON_FECHA = r"^\d{4}-\d{2}-\d{2}$"
 
 class Comun(SQLModel):
     id: str = Field(primary_key=True, max_length=40)
-    actualizado: int = Field(ge=0)
+    actualizado: int = Field(ge=0, sa_type=BigInteger)
     borrado: bool = False
 
     @field_validator("id")
@@ -58,11 +59,11 @@ class TareaBase(Comun):
     prioridad: int = Field(default=4, ge=1, le=4)  # 1 = urgente ... 4 = sin prioridad
     fecha: str | None = Field(default=None)
     completada: bool = False
-    completada_en: int | None = None
-    creada: int = Field(ge=0)
+    completada_en: int | None = Field(default=None, sa_type=BigInteger)
+    creada: int = Field(ge=0, sa_type=BigInteger)
     orden: float = 0
     # Preparados para la fase 2 (recordatorios, repeticiones y subtareas)
-    recordatorio: int | None = None
+    recordatorio: int | None = Field(default=None, sa_type=BigInteger)
     recurrencia: str | None = Field(default=None, max_length=100)
     padre_id: str | None = Field(default=None, max_length=40)
 

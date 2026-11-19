@@ -6,6 +6,7 @@ DATABASE_URL con la dirección que te da Neon.
 """
 import os
 
+from sqlalchemy import text
 from sqlmodel import Session, SQLModel, create_engine
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///tareas.db")
@@ -22,8 +23,22 @@ else:
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
+# Columnas que guardan milisegundos y no caben en un número normal (INTEGER)
+COLUMNAS_GRANDES = {
+    "proyecto": ["actualizado"],
+    "etiqueta": ["actualizado"],
+    "tarea": ["actualizado", "creada", "completada_en", "recordatorio"],
+}
+
+
 def crear_tablas():
     SQLModel.metadata.create_all(engine)
+    if engine.dialect.name == "postgresql":
+        # Arregla las tablas creadas por la primera versión (con INTEGER)
+        with engine.begin() as conexion:
+            for tabla, columnas in COLUMNAS_GRANDES.items():
+                for columna in columnas:
+                    conexion.execute(text(f"ALTER TABLE {tabla} ALTER COLUMN {columna} TYPE BIGINT"))
 
 
 def obtener_sesion():

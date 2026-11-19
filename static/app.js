@@ -103,8 +103,12 @@ async function sincronizar() {
     persistir();
     pintar();
     mostrarEstadoSync();
-  } catch {
-    mostrarEstadoSync(navigator.onLine ? "No se pudo conectar con el servidor" : "Sin conexión");
+  } catch (error) {
+    mostrarEstadoSync(
+      !navigator.onLine ? "Sin conexión"
+        : error.message.startsWith("Error") ? `El servidor ha fallado (${error.message})`
+        : "No se pudo conectar con el servidor"
+    );
     programarSync(30000); // reintentar dentro de 30 s
   } finally {
     sincronizando = false;
