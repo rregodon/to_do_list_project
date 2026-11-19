@@ -143,6 +143,21 @@ const FONDOS = {
   oceano:    { nombre: "Océano",    claro: "linear-gradient(160deg,#d7f0ff,#c9f3ec 60%,#e6f7d9)", oscuro: "linear-gradient(160deg,#0f2530,#0f2a26)" },
   atardecer: { nombre: "Atardecer", claro: "linear-gradient(160deg,#ffd6a5,#ffadad 60%,#e8b4f8)", oscuro: "linear-gradient(160deg,#40261c,#3a1f33)" },
   noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
+  // Fondos sobrios: cada uno va con su modo (claro u oscuro)
+  hielo:      { nombre: "Hielo", fijo: "claro",
+                v: "radial-gradient(90% 55% at 15% 0%,#ffffff 0,transparent 60%),radial-gradient(70% 50% at 100% 100%,#c6d9ec 0,transparent 70%),linear-gradient(180deg,#eaf2fa,#d9e6f2)" },
+  niebla:     { nombre: "Niebla", fijo: "claro",
+                v: "radial-gradient(90% 55% at 20% 0%,#ffffff 0,transparent 60%),radial-gradient(80% 50% at 100% 100%,#d3d5d9 0,transparent 70%),linear-gradient(180deg,#f2f3f5,#e2e4e7)" },
+  acero:      { nombre: "Acero", fijo: "claro",
+                v: "radial-gradient(90% 55% at 20% 0%,#f5f8fb 0,transparent 60%),linear-gradient(170deg,#dee4eb,#c5ced8)" },
+  grafito:    { nombre: "Grafito", fijo: "oscuro",
+                v: "radial-gradient(100% 50% at 50% 0%,#2c2e33 0,transparent 70%),linear-gradient(180deg,#18191c,#0e0f11)" },
+  onix:       { nombre: "Ónix", fijo: "oscuro",
+                v: "radial-gradient(80% 40% at 50% 0%,#1c1c1c 0,transparent 70%),#000" },
+  pizarra:    { nombre: "Pizarra", fijo: "oscuro",
+                v: "radial-gradient(100% 50% at 30% 0%,#3b4653 0,transparent 70%),linear-gradient(180deg,#232b34,#151a20)" },
+  medianoche: { nombre: "Medianoche", fijo: "oscuro",
+                v: "radial-gradient(100% 50% at 50% 0%,#1f3252 0,transparent 70%),linear-gradient(180deg,#0f1a2c,#070c16)" },
   aurora:    { nombre: "Aurora",
                claro: "radial-gradient(circle at 15% 15%,#a5f3fc 0,transparent 42%),radial-gradient(circle at 90% 35%,#c4b5fd 0,transparent 45%),radial-gradient(circle at 30% 85%,#f9a8d4 0,transparent 45%),#eef2ff",
                oscuro: "radial-gradient(circle at 15% 15%,#0e7490 0,transparent 42%),radial-gradient(circle at 90% 35%,#6d28d9 0,transparent 45%),radial-gradient(circle at 30% 85%,#be185d 0,transparent 45%),#0b1020" },
@@ -157,7 +172,7 @@ const FONDOS = {
                oscuro: "radial-gradient(circle at 20% 25%,#0891b2 0,transparent 35%),radial-gradient(circle at 85% 60%,#a21caf 0,transparent 38%),radial-gradient(circle at 30% 92%,#15803d 0,transparent 32%),#05060f" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "clasico", variante: "esmerilado", tema: "claro", fondo: "ninguno", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "sobrio", tema: "claro", fondo: "hielo", foto: null, colorDefecto: "azul", completadasAbiertas: false });
 
 function guardarAjustes() {
   try {
@@ -175,6 +190,8 @@ const oscuroDelSistema = matchMedia("(prefers-color-scheme: dark)");
 oscuroDelSistema.addEventListener?.("change", () => aplicarAjustes());
 
 function temaActual() {
+  const fijo = ajustes.fondo !== "foto" && FONDOS[ajustes.fondo]?.fijo;
+  if (fijo) return fijo;
   if (ajustes.tema === "auto") return oscuroDelSistema.matches ? "oscuro" : "claro";
   return ajustes.tema;
 }
@@ -190,7 +207,8 @@ function aplicarAjustes() {
   if (ajustes.fondo === "foto" && ajustes.foto) {
     fondo.style.background = `url(${ajustes.foto}) center / cover no-repeat`;
   } else {
-    fondo.style.background = (FONDOS[ajustes.fondo] ?? FONDOS.ninguno)[tema];
+    const f = FONDOS[ajustes.fondo] ?? FONDOS.ninguno;
+    fondo.style.background = f.v ?? f[tema];
   }
 }
 
@@ -572,11 +590,36 @@ $("btn-borrar-lista").addEventListener("click", () => {
 });
 
 // Ajustes
+// Combinaciones ya hechas: un toque y listo
+const TEMAS = [
+  ["Hielo", { estilo: "cristal", variante: "sobrio", fondo: "hielo" }],
+  ["Niebla", { estilo: "cristal", variante: "sobrio", fondo: "niebla" }],
+  ["Acero", { estilo: "cristal", variante: "sobrio", fondo: "acero" }],
+  ["Grafito", { estilo: "cristal", variante: "sobrio", fondo: "grafito" }],
+  ["Ónix", { estilo: "cristal", variante: "sobrio", fondo: "onix" }],
+  ["Pizarra", { estilo: "cristal", variante: "sobrio", fondo: "pizarra" }],
+  ["Medianoche", { estilo: "cristal", variante: "sobrio", fondo: "medianoche" }],
+  ["Clásico", { estilo: "clasico", variante: "esmerilado", fondo: "ninguno" }],
+];
+
 const ESTILOS = [["clasico", "Clásico"], ["bento", "Bento"], ["cristal", "Cristal"], ["papel", "Papel"], ["monocromo", "Monocromo"]];
 
-const VARIANTES = [["esmerilado", "Esmerilado"], ["tintado", "Tintado"], ["hielo", "Hielo"], ["liquido", "Líquido"], ["neon", "Neón"]];
+const VARIANTES = [["sobrio", "Sobrio"], ["esmerilado", "Esmerilado"], ["tintado", "Tintado"], ["hielo", "Hielo"], ["liquido", "Líquido"], ["neon", "Neón"]];
 
 function pintarAjustes() {
+  $("temas").replaceChildren(
+    ...TEMAS.map(([nombre, t]) => {
+      const f = FONDOS[t.fondo];
+      const elegido = ajustes.estilo === t.estilo && ajustes.fondo === t.fondo && (t.estilo !== "cristal" || ajustes.variante === t.variante);
+      return h("button", {
+        type: "button", class: "muestra-fondo muestra-tema" + (elegido ? " elegido" : ""),
+        style: `background:${f.v ?? f.claro}`,
+        "data-oscuro": f.fijo === "oscuro",
+        onclick: () => { Object.assign(ajustes, t); guardarAjustes(); pintarAjustes(); pintar(); },
+      }, h("span", { class: "mini-tarjeta" }), h("span", { class: "mini-tarjeta" }), nombre);
+    })
+  );
+
   $("estilos").replaceChildren(
     ...ESTILOS.map(([valor, texto]) => h("button", {
       type: "button", class: "estilo-opcion" + (ajustes.estilo === valor ? " elegido" : ""),
@@ -605,7 +648,7 @@ function pintarAjustes() {
     h("button", {
       type: "button",
       class: "muestra-fondo" + (ajustes.fondo === clave ? " elegido" : ""),
-      style: `background:${f[tema]}`,
+      style: `background:${f.v ?? f[tema]}`,
       onclick: () => { ajustes.fondo = clave; guardarAjustes(); pintarAjustes(); },
     }, f.nombre)
   );

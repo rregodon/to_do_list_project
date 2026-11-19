@@ -462,3 +462,82 @@ html[data-estilo="cristal"][data-variante="neon"] .cabecera h1 { color: #fff; te
 html[data-estilo="cristal"][data-variante="neon"] .boton-flotante { box-shadow: 0 0 26px var(--color-lista, var(--acento)); }
 html[data-estilo="cristal"][data-variante="neon"] .tarjeta-nueva { color: rgb(255 255 255 / .7); border-color: rgb(255 255 255 / .25); box-shadow: none; }
 html[data-estilo="cristal"][data-variante="neon"] .cabecera-completadas, html[data-estilo="cristal"][data-variante="neon"] .estado-sync { color: rgb(255 255 255 / .6); }
+
+/* Miniaturas de los temas en Ajustes */
+.muestra-tema { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 6px; place-items: initial; }
+.muestra-tema .mini-tarjeta { height: 14px; border-radius: 5px; background: rgb(255 255 255 / .6); border: 1px solid rgb(255 255 255 / .8); }
+.muestra-tema[data-oscuro] { color: rgb(255 255 255 / .75); }
+.muestra-tema[data-oscuro] .mini-tarjeta { background: rgb(255 255 255 / .08); border-color: rgb(255 255 255 / .14); }
+
+/* =====================================================================
+   CRISTAL SOBRIO: serio y elegante. Colores apagados, sin brillos.
+   ===================================================================== */
+html[data-estilo="cristal"][data-variante="sobrio"] {
+  --texto: #1d1f23; --texto-suave: #7c818a; --acento: #2d3a4a; --peligro: #c2453d;
+  --cristal: rgb(255 255 255 / .52); --cristal-borde: rgb(255 255 255 / .85); --cristal-luz: rgb(255 255 255 / .95);
+  --cristal-sombra: 0 1px 2px rgb(20 30 45 / .05), 0 12px 32px rgb(20 30 45 / .08);
+  --separador: rgb(30 40 55 / .08);
+  --tarjeta-solida: #f7f8fa;
+}
+html[data-estilo="cristal"][data-variante="sobrio"][data-tema="oscuro"] {
+  --texto: #ececee; --texto-suave: #8b8f97; --acento: #e6e8eb; --peligro: #ff7b72;
+  --cristal: rgb(255 255 255 / .045); --cristal-borde: rgb(255 255 255 / .09); --cristal-luz: rgb(255 255 255 / .07);
+  --cristal-sombra: 0 12px 32px rgb(0 0 0 / .35);
+  --separador: rgb(255 255 255 / .07);
+  --tarjeta-solida: #1b1c1f; --fondo: #0e0f11;
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .pantalla { --suave: color-mix(in srgb, var(--color-lista, var(--acento)) 55%, #8a8f98); }
+
+html[data-estilo="cristal"][data-variante="sobrio"] .cabecera h1,
+html[data-estilo="cristal"][data-variante="sobrio"] .titulo-lista { font-weight: 700; letter-spacing: -.6px; color: var(--texto) !important; }
+html[data-estilo="cristal"][data-variante="sobrio"] .titulo-lista { display: flex; align-items: center; gap: 12px; }
+html[data-estilo="cristal"][data-variante="sobrio"] .titulo-lista::before {
+  content: ""; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-lista) 60%, #8a8f98);
+}
+
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-lista,
+html[data-estilo="cristal"][data-variante="sobrio"] .bloque,
+html[data-estilo="cristal"][data-variante="sobrio"] .boton-redondo {
+  background: var(--cristal) !important; color: var(--texto);
+  border: 1px solid var(--cristal-borde);
+  box-shadow: inset 0 1px 0 var(--cristal-luz), var(--cristal-sombra);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4);
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-lista { border-radius: 20px; padding: 16px 16px 14px; }
+html[data-estilo="cristal"][data-variante="sobrio"] .bloque { border-radius: 18px; }
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-lista::before {
+  width: 8px; height: 8px; border-radius: 50%; box-shadow: none; right: 16px; top: 18px;
+  background: color-mix(in srgb, var(--c) 60%, #8a8f98);
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-lista .contador { font-size: 30px; font-weight: 600; letter-spacing: -1px; }
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-lista .nombre { font-size: 16px; font-weight: 600; }
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-lista .sub { color: var(--texto-suave); opacity: 1; }
+html[data-estilo="cristal"][data-variante="sobrio"] .progreso { height: 3px; background: var(--separador); }
+html[data-estilo="cristal"][data-variante="sobrio"] .progreso i { background: color-mix(in srgb, var(--c) 55%, #8a8f98); }
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-nueva {
+  background: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 1px dashed color-mix(in srgb, var(--texto-suave) 50%, transparent); color: var(--texto-suave);
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .tarjeta-nueva .mas { font-weight: 200; }
+
+html[data-estilo="cristal"][data-variante="sobrio"] .check {
+  border: 1.5px solid color-mix(in srgb, var(--texto-suave) 80%, transparent); border-radius: 7px;
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .check.hecha {
+  background: color-mix(in srgb, var(--color-lista) 50%, #7c818a); border-color: transparent;
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .estrella { color: color-mix(in srgb, var(--texto-suave) 45%, transparent); }
+html[data-estilo="cristal"][data-variante="sobrio"] .estrella.activa { color: #c9a33a; }
+html[data-estilo="cristal"][data-variante="sobrio"] .tarea-titulo .icono-notas { opacity: .6; }
+
+html[data-estilo="cristal"][data-variante="sobrio"] .boton-flotante {
+  background: var(--texto); color: var(--tarjeta-solida);
+  box-shadow: 0 10px 28px rgb(0 0 0 / .22);
+}
+html[data-estilo="cristal"][data-variante="sobrio"] .hoja { background: var(--tarjeta-solida); }
+html[data-estilo="cristal"][data-variante="sobrio"] .hoja .grupo,
+html[data-estilo="cristal"][data-variante="sobrio"] .hoja .boton-accion { background: color-mix(in srgb, var(--texto) 5%, transparent); }
+html[data-estilo="cristal"][data-variante="sobrio"] .boton-texto { color: var(--acento); }
+html[data-estilo="cristal"][data-variante="sobrio"] .estilo-opcion.elegido { background: var(--texto); border-color: var(--texto); color: var(--tarjeta-solida); }
+html[data-estilo="cristal"][data-variante="sobrio"] .detras { font-size: 14px; }
