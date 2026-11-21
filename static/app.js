@@ -438,7 +438,18 @@ function filaTarea(t) {
 
 const UMBRAL = 60;         // px que hay que deslizar para que cuente
 const UMBRAL_RAPIDO = 30;  // con un gesto rápido basta con menos
-const VELOCIDAD = 0.45;    // px por ms para considerarlo gesto rápido
+const VELOCIDAD = 0.3;     // px por ms para considerarlo gesto rápido
+
+// Evita que el "clic" que llega justo después de un gesto abra la tarea
+function ignorarSiguienteClic(el) {
+  const parar = (e) => { e.stopPropagation(); e.preventDefault(); };
+  el.addEventListener("click", parar, { capture: true, once: true });
+  setTimeout(() => el.removeEventListener("click", parar, { capture: true }), 350);
+}
+
+// En el iPhone se usan los eventos táctiles: así el gesto funciona empezando
+// en cualquier punto de la tarea (también encima del texto o de los botones).
+const TACTIL = "ontouchstart" in window;
 
 function activarDeslizar(fila, id) {
   const tarea = fila.querySelector(".tarea");
@@ -467,62 +478,78 @@ function activarDeslizar(fila, id) {
     izq.classList.remove("listo"); der.classList.remove("listo");
   };
 
-  tarea.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    inicioX = ultimoX = e.clientX; inicioY = e.clientY; ultimoT = e.timeStamp;
+  const empezar = (x, y, t) => {
+    inicioX = ultimoX = x; inicioY = y; ultimoT = t;
     dx = 0; velocidad = 0; activo = true; decidido = false;
-  });
+  };
 
-  tarea.addEventListener("pointermove", (e) => {
-    if (!activo) return;
-    if (arrastre) { limpiar(); return; } // se está arrastrando para reordenar
-    const mx = e.clientX - inicioX, my = e.clientY - inicioY;
+  // Devuelve true si el gesto es nuestro (horizontal) y hay que bloquear el scroll
+  const mover = (x, y, t) => {
+    if (!activo) return false;
+    if (arrastre) { limpiar(); return false; } // se está arrastrando para reordenar
+    const mx = x - inicioX, my = y - inicioY;
     if (!decidido) {
-      if (Math.abs(mx) < 6 && Math.abs(my) < 6) return;
-      if (Math.abs(my) > Math.abs(mx)) { activo = false; return; } // está haciendo scroll
+      if (Math.abs(mx) < 6 && Math.abs(my) < 6) return false;
+      if (Math.abs(my) > Math.abs(mx)) { activo = false; return false; } // está haciendo scroll
       decidido = true;
-      try { tarea.setPointerCapture(e.pointerId); } catch {}
       tarea.classList.add("arrastrando");
       fila.classList.add("deslizando");
     }
-    const dt = e.timeStamp - ultimoT;
-    if (dt > 0) velocidad = (e.clientX - ultimoX) / dt;
-    ultimoX = e.clientX; ultimoT = e.timeStamp;
+    const dt = t - ultimoT;
+    if (dt > 0) velocidad = (x - ultimoX) / dt;
+    ultimoX = x; ultimoT = t;
     dx = mx;
     if (!cuadro) cuadro = requestAnimationFrame(pintarDesplazamiento);
-  });
+    return true;
+  };
 
   const soltar = () => {
     if (!activo) return;
     if (!decidido) { activo = false; return; }
+    ignorarSiguienteClic(fila);
     const rapido = Math.abs(velocidad) > VELOCIDAD && Math.abs(dx) > UMBRAL_RAPIDO && Math.sign(velocidad) === Math.sign(dx);
     const final = dx;
-    // Evita que el "clic" al soltar abra la tarea
-    tarea.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
-    if (final >= UMBRAL || (rapido && final > 0)) {
+    const salir = (lado, accion) => {
+      cancelAnimationFrame(cuadro); cuadro = 0;
+      activo = false;
       tarea.classList.remove("arrastrando");
       fila.classList.remove("deslizando");
-      tarea.style.transform = "translate3d(100%,0,0)";
-      izq.style.width = "100%";
-      activo = false;
-      setTimeout(() => { limpiar(); alternarCompletada(id, false); }, 160);
-      return;
-    }
-    if (final <= -UMBRAL || (rapido && final < 0)) {
-      tarea.classList.remove("arrastrando");
-      fila.classList.remove("deslizando");
-      tarea.style.transform = "translate3d(-100%,0,0)";
-      der.style.width = "100%";
-      activo = false;
-      setTimeout(() => { limpiar(); borrarTarea(id); }, 160);
-      return;
-    }
+      tarea.style.transform = `translate3d(${lado * 100}%,0,0)`;
+      (lado > 0 ? izq : der).style.width = "100%";
+      setTimeout(() => { limpiar(); accion(); }, 160);
+    };
+    if (final >= UMBRAL || (rapido && final > 0)) return salir(1, () => alternarCompletada(id, false));
+    if (final <= -UMBRAL || (rapido && final < 0)) return salir(-1, () => borrarTarea(id));
     limpiar(); // no ha llegado: vuelve a su sitio
   };
-  tarea.addEventListener("pointerup", soltar);
-  // Cualquier interrupción (llamada, scroll del sistema...) deja la fila limpia
-  tarea.addEventListener("pointercancel", limpiar);
-  tarea.addEventListener("lostpointercapture", () => { if (activo) soltar(); });
+
+  if (TACTIL) {
+    fila.addEventListener("touchstart", (e) => {
+      if (e.touches.length > 1) return limpiar();
+      const p = e.touches[0];
+      empezar(p.clientX, p.clientY, performance.now());
+    }, { passive: true });
+    fila.addEventListener("touchmove", (e) => {
+      const p = e.touches[0];
+      if (mover(p.clientX, p.clientY, performance.now()) && e.cancelable) e.preventDefault();
+    }, { passive: false });
+    fila.addEventListener("touchend", soltar);
+    fila.addEventListener("touchcancel", limpiar);
+  } else {
+    // Ratón (ordenador)
+    tarea.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      empezar(e.clientX, e.clientY, e.timeStamp);
+    });
+    tarea.addEventListener("pointermove", (e) => {
+      const antes = decidido;
+      mover(e.clientX, e.clientY, e.timeStamp);
+      if (!antes && decidido) try { tarea.setPointerCapture(e.pointerId); } catch {}
+    });
+    tarea.addEventListener("pointerup", soltar);
+    tarea.addEventListener("pointercancel", limpiar);
+    tarea.addEventListener("lostpointercapture", () => { if (activo) soltar(); });
+  }
 }
 
 // ---------- Acciones sobre tareas ----------

@@ -765,3 +765,6 @@ body.con-foto .boton-vaciar { color: #ff8a80; }
   background: var(--c); transition: transform .12s, box-shadow .12s;
 }
 .chip-lista.encima { transform: scale(1.1); box-shadow: 0 0 0 3px var(--tarjeta-solida), 0 0 0 6px var(--c); }
+
+/* Deslizar desde cualquier punto de la tarea (también encima del texto y los botones) */
+.tarea, .tarea * { touch-action: pan-y; }
