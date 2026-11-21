@@ -310,6 +310,7 @@ function pintar() {
 function pintarInicio() {
   const tarjetas = listas().map((l) => {
     const pendientes = tareasDeLista(l.id).filter((t) => !t.completada);
+    const importantes = pendientes.filter((t) => t.prioridad === 1).length;
     const total = tareasDeLista(l.id).length;
     const hecho = total ? Math.round(((total - pendientes.length) / total) * 100) : 0;
     const tarjeta = h("button", {
@@ -318,8 +319,10 @@ function pintarInicio() {
       style: `--c:${colorCss(l.color)};background:var(--c)`,
       onclick: () => abrirLista(l.id),
     },
+      h("span", { class: "contador" }, String(pendientes.length)),
       h("span", {},
         h("div", { class: "nombre" }, l.nombre),
+        importantes ? h("div", { class: "sub" }, `★ ${importantes} importante${importantes > 1 ? "s" : ""}`) : null,
         h("div", { class: "progreso" }, h("i", { style: `width:${hecho}%` })),
       ),
     );
@@ -333,6 +336,7 @@ function pintarInicio() {
   const sueltas = tareasDeLista(SIN_LISTA).filter((t) => !t.completada).length;
   if (sueltas) {
     tarjetas.push(h("button", { class: "tarjeta-lista", style: "--c:var(--gris);background:var(--c)", onclick: () => abrirLista(SIN_LISTA) },
+      h("span", { class: "contador" }, String(sueltas)),
       h("span", {}, h("div", { class: "nombre" }, "Sin lista")),
     ));
   }
@@ -516,7 +520,7 @@ function alternarCompletada(id, celebrar = true) {
   if (fila && !fila.classList.contains("celebrando")) {
     fila.classList.add("celebrando");
     vibrar();
-    setTimeout(() => alternarCompletada(id, false), 650);
+    setTimeout(() => alternarCompletada(id, false), 280);
     return;
   }
   t.completada = !t.completada;
