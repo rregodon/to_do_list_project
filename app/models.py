@@ -10,6 +10,7 @@ Todos los registros tienen:
 - version: número que pone el servidor en cada cambio. Cada dispositivo
   recuerda la última versión que vio y pide solo lo nuevo.
 """
+import json
 import re
 
 from pydantic import field_validator
@@ -82,6 +83,19 @@ class TareaBase(Comun):
         return v
 
 
+class AjusteBase(Comun):
+    """Preferencias de aspecto (tema, fondo...) compartidas entre dispositivos."""
+
+    valor: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+    @field_validator("valor")
+    @classmethod
+    def valor_valido(cls, v):
+        if len(json.dumps(v)) > 4000:
+            raise ValueError("Ajustes demasiado grandes")
+        return v
+
+
 class Proyecto(ProyectoBase, table=True):
     version: int = Field(default=0, index=True)
 
@@ -91,6 +105,10 @@ class Etiqueta(EtiquetaBase, table=True):
 
 
 class Tarea(TareaBase, table=True):
+    version: int = Field(default=0, index=True)
+
+
+class Ajuste(AjusteBase, table=True):
     version: int = Field(default=0, index=True)
 
 
@@ -108,3 +126,4 @@ class DatosSync(SQLModel):
     proyectos: list[ProyectoBase] = Field(default_factory=list, max_length=5000)
     etiquetas: list[EtiquetaBase] = Field(default_factory=list, max_length=5000)
     tareas: list[TareaBase] = Field(default_factory=list, max_length=20000)
+    ajustes: list[AjusteBase] = Field(default_factory=list, max_length=10)

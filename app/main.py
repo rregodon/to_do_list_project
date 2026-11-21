@@ -16,10 +16,10 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import auth
 from .database import crear_tablas, obtener_sesion
-from .models import Contador, DatosSync, Etiqueta, Proyecto, Tarea
+from .models import Ajuste, Contador, DatosSync, Etiqueta, Proyecto, Tarea
 
 CARPETA_STATIC = Path(__file__).resolve().parent.parent / "static"
-TABLAS = {"proyectos": Proyecto, "etiquetas": Etiqueta, "tareas": Tarea}
+TABLAS = {"proyectos": Proyecto, "etiquetas": Etiqueta, "tareas": Tarea, "ajustes": Ajuste}
 
 
 @asynccontextmanager

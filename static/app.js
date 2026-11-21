@@ -8,7 +8,7 @@
 // se guarda como prioridad 1 (el resto, prioridad 4).
 
 const COLORES = ["azul", "indigo", "morado", "rosa", "rojo", "naranja", "amarillo", "verde", "turquesa", "gris"];
-const TIPOS = ["proyectos", "etiquetas", "tareas"];
+const TIPOS = ["proyectos", "etiquetas", "tareas", "ajustes"];
 const CLAVE = "tareas-v1";
 const CLAVE_AJUSTES = "ajustes-v1";
 
@@ -18,9 +18,9 @@ const $ = (id) => document.getElementById(id);
 
 function datosVacios() {
   return {
-    proyectos: {}, etiquetas: {}, tareas: {},
-    cursor: 0,                                                 // última versión recibida del servidor
-    pendientes: { proyectos: [], etiquetas: [], tareas: [] }, // ids aún sin enviar
+    proyectos: {}, etiquetas: {}, tareas: {}, ajustes: {},
+    cursor: 0,                                                               // última versión recibida del servidor
+    pendientes: { proyectos: [], etiquetas: [], tareas: [], ajustes: [] }, // ids aún sin enviar
     ultimaSync: null,
   };
 }
@@ -34,6 +34,9 @@ function leerJSON(clave, porDefecto) {
 }
 
 const db = leerJSON(CLAVE, datosVacios());
+// Datos guardados por una versión anterior de la app
+db.ajustes ??= {};
+db.pendientes.ajustes ??= [];
 
 function persistir() {
   localStorage.setItem(CLAVE, JSON.stringify(db));
@@ -49,6 +52,18 @@ function guardar(tipo, registro) {
   registro.actualizado = Math.max(Date.now(), (db[tipo][registro.id]?.actualizado ?? 0) + 1);
   db[tipo][registro.id] = registro;
   if (!db.pendientes[tipo].includes(registro.id)) db.pendientes[tipo].push(registro.id);
+  persistir();
+  pintar();
+  programarSync(800);
+}
+
+// Igual que guardar(), pero para muchos registros de golpe
+function guardarVarios(tipo, registros) {
+  for (const registro of registros) {
+    registro.actualizado = Math.max(Date.now(), (db[tipo][registro.id]?.actualizado ?? 0) + 1);
+    db[tipo][registro.id] = registro;
+    if (!db.pendientes[tipo].includes(registro.id)) db.pendientes[tipo].push(registro.id);
+  }
   persistir();
   pintar();
   programarSync(800);
@@ -94,7 +109,7 @@ async function sincronizar() {
         (id) => !enviados.has(id) || db[tipo][id].actualizado !== enviados.get(id)
       );
       // Aplicar lo que llega de otros dispositivos (gana el cambio más reciente)
-      for (const r of recibido[tipo]) {
+      for (const r of recibido[tipo] ?? []) {
         const local = db[tipo][r.id];
         if (!local || r.actualizado >= local.actualizado) db[tipo][r.id] = r;
       }
@@ -102,6 +117,7 @@ async function sincronizar() {
     db.cursor = recibido.cursor;
     db.ultimaSync = Date.now();
     persistir();
+    if (recibido.ajustes?.length) cargarAjustesCompartidos();
     pintar();
     mostrarEstadoSync();
   } catch (error) {
@@ -131,100 +147,106 @@ function mostrarEstadoSync(texto) {
   $("info-ajustes").textContent = texto;
 }
 
-// ---------- Ajustes (de este dispositivo) ----------
+// ---------- Ajustes ----------
+//
+// El tema, los recuadros y el tamaño del texto se comparten entre tus
+// dispositivos (se sincronizan como un registro "ajustes"). La foto de fondo
+// se queda solo en el dispositivo donde la eliges, porque ocupa mucho.
 
+// Fondos de color liso. "fijo" dice si el texto va en modo claro u oscuro.
 const FONDOS = {
-  ninguno:   { nombre: "Liso",      claro: "var(--fondo)", oscuro: "var(--fondo)" },
-  arena:     { nombre: "Arena",     claro: "#f4eee4", oscuro: "#1d1a16" },
-  salvia:    { nombre: "Salvia",    claro: "#e6eee4", oscuro: "#151b15" },
-  cielo:     { nombre: "Cielo",     claro: "#e4edf7", oscuro: "#121821" },
-  lavanda:   { nombre: "Lavanda",   claro: "#ece8f6", oscuro: "#18151f" },
-  amanecer:  { nombre: "Amanecer",  claro: "linear-gradient(160deg,#ffe3d3,#fbd3e9 55%,#e3dcff)", oscuro: "linear-gradient(160deg,#3a2430,#24203a)" },
-  oceano:    { nombre: "Océano",    claro: "linear-gradient(160deg,#d7f0ff,#c9f3ec 60%,#e6f7d9)", oscuro: "linear-gradient(160deg,#0f2530,#0f2a26)" },
-  atardecer: { nombre: "Atardecer", claro: "linear-gradient(160deg,#ffd6a5,#ffadad 60%,#e8b4f8)", oscuro: "linear-gradient(160deg,#40261c,#3a1f33)" },
-  noche:     { nombre: "Noche",     claro: "linear-gradient(160deg,#c3cfe2,#e2d1f9)", oscuro: "linear-gradient(160deg,#0f1028,#2b1340)" },
-  // Fondos claros y nítidos para el Liquid Glass
-  glaciar2:   { nombre: "Glaciar",   fijo: "claro", v: "url(fondos/glaciar2.jpg) center / cover" },
-  cielo2:     { nombre: "Cielo",     fijo: "claro", v: "url(fondos/cielo2.jpg) center / cover" },
-  perla:      { nombre: "Perla",     fijo: "claro", v: "url(fondos/perla.jpg) center / cover" },
-  menta:      { nombre: "Menta",     fijo: "claro", v: "url(fondos/menta.jpg) center / cover" },
-  lavanda2:   { nombre: "Lavanda",   fijo: "claro", v: "url(fondos/lavanda2.jpg) center / cover" },
-  melocoton:  { nombre: "Melocotón", fijo: "claro", v: "url(fondos/melocoton.jpg) center / cover" },
-  // Fondos de colores para el Liquid Glass (imágenes en /fondos)
-  laguna:     { nombre: "Laguna",  fijo: "oscuro", v: "url(fondos/laguna.jpg) center / cover" },
-  coral:      { nombre: "Coral",   fijo: "oscuro", v: "url(fondos/coral.jpg) center / cover" },
-  violeta:    { nombre: "Violeta", fijo: "oscuro", v: "url(fondos/violeta.jpg) center / cover" },
-  lima:       { nombre: "Lima",    fijo: "oscuro", v: "url(fondos/lima.jpg) center / cover" },
-  ambar:      { nombre: "Ámbar",   fijo: "oscuro", v: "url(fondos/ambar.jpg) center / cover" },
-  glaciar:    { nombre: "Glaciar difuso", fijo: "claro",  v: "url(fondos/glaciar.jpg) center / cover" },
-  carbon:     { nombre: "Carbón",  fijo: "oscuro", v: "url(fondos/carbon.jpg) center / cover" },
-  // Fondos sobrios: cada uno va con su modo (claro u oscuro)
-  hielo:      { nombre: "Hielo", fijo: "claro",
-                v: "radial-gradient(90% 55% at 15% 0%,#ffffff 0,transparent 60%),radial-gradient(70% 50% at 100% 100%,#c6d9ec 0,transparent 70%),linear-gradient(180deg,#eaf2fa,#d9e6f2)" },
-  niebla:     { nombre: "Niebla", fijo: "claro",
-                v: "radial-gradient(90% 55% at 20% 0%,#ffffff 0,transparent 60%),radial-gradient(80% 50% at 100% 100%,#d3d5d9 0,transparent 70%),linear-gradient(180deg,#f2f3f5,#e2e4e7)" },
-  acero:      { nombre: "Acero", fijo: "claro",
-                v: "radial-gradient(90% 55% at 20% 0%,#f5f8fb 0,transparent 60%),linear-gradient(170deg,#dee4eb,#c5ced8)" },
-  grafito:    { nombre: "Grafito", fijo: "oscuro",
-                v: "radial-gradient(100% 50% at 50% 0%,#2c2e33 0,transparent 70%),linear-gradient(180deg,#18191c,#0e0f11)" },
-  onix:       { nombre: "Ónix", fijo: "oscuro",
-                v: "radial-gradient(80% 40% at 50% 0%,#1c1c1c 0,transparent 70%),#000" },
-  pizarra:    { nombre: "Pizarra", fijo: "oscuro",
-                v: "radial-gradient(100% 50% at 30% 0%,#3b4653 0,transparent 70%),linear-gradient(180deg,#232b34,#151a20)" },
-  medianoche: { nombre: "Medianoche", fijo: "oscuro",
-                v: "radial-gradient(100% 50% at 50% 0%,#1f3252 0,transparent 70%),linear-gradient(180deg,#0f1a2c,#070c16)" },
-  aurora:    { nombre: "Aurora",
-               claro: "radial-gradient(circle at 15% 15%,#a5f3fc 0,transparent 42%),radial-gradient(circle at 90% 35%,#c4b5fd 0,transparent 45%),radial-gradient(circle at 30% 85%,#f9a8d4 0,transparent 45%),#eef2ff",
-               oscuro: "radial-gradient(circle at 15% 15%,#0e7490 0,transparent 42%),radial-gradient(circle at 90% 35%,#6d28d9 0,transparent 45%),radial-gradient(circle at 30% 85%,#be185d 0,transparent 45%),#0b1020" },
-  lava:      { nombre: "Lava",
-               claro: "radial-gradient(circle at 80% 10%,#fdba74 0,transparent 40%),radial-gradient(circle at 10% 55%,#fda4af 0,transparent 45%),radial-gradient(circle at 75% 90%,#fde68a 0,transparent 45%),#fff7ed",
-               oscuro: "radial-gradient(circle at 80% 10%,#c2410c 0,transparent 40%),radial-gradient(circle at 10% 55%,#be123c 0,transparent 45%),radial-gradient(circle at 75% 90%,#a16207 0,transparent 45%),#1a0f0a" },
-  bosque:    { nombre: "Bosque",
-               claro: "radial-gradient(circle at 20% 20%,#bbf7d0 0,transparent 45%),radial-gradient(circle at 85% 55%,#99f6e4 0,transparent 45%),radial-gradient(circle at 30% 95%,#d9f99d 0,transparent 40%),#f0fdf4",
-               oscuro: "radial-gradient(circle at 20% 20%,#166534 0,transparent 45%),radial-gradient(circle at 85% 55%,#115e59 0,transparent 45%),radial-gradient(circle at 30% 95%,#3f6212 0,transparent 40%),#06120b" },
-  neon:      { nombre: "Neón",
-               claro: "radial-gradient(circle at 20% 25%,#67e8f9 0,transparent 35%),radial-gradient(circle at 85% 60%,#f0abfc 0,transparent 38%),radial-gradient(circle at 30% 92%,#86efac 0,transparent 32%),#f5f3ff",
-               oscuro: "radial-gradient(circle at 20% 25%,#0891b2 0,transparent 35%),radial-gradient(circle at 85% 60%,#a21caf 0,transparent 38%),radial-gradient(circle at 30% 92%,#15803d 0,transparent 32%),#05060f" },
+  // Claros
+  glaciar:    { nombre: "Glaciar",    fijo: "claro",  v: "#dbe7f2" },
+  perla:      { nombre: "Perla",      fijo: "claro",  v: "#ecebe7" },
+  cielo:      { nombre: "Cielo",      fijo: "claro",  v: "#d3e4f8" },
+  menta:      { nombre: "Menta",      fijo: "claro",  v: "#d5ede1" },
+  lavanda:    { nombre: "Lavanda",    fijo: "claro",  v: "#e3def5" },
+  melocoton:  { nombre: "Melocotón",  fijo: "claro",  v: "#f7e0d1" },
+  arena:      { nombre: "Arena",      fijo: "claro",  v: "#eee4d2" },
+  rosa:       { nombre: "Rosa",       fijo: "claro",  v: "#f5dbe4" },
+  // Oscuros
+  carbon:     { nombre: "Carbón",     fijo: "oscuro", v: "#1c1c1e" },
+  negro:      { nombre: "Negro",      fijo: "oscuro", v: "#000000" },
+  pizarra:    { nombre: "Pizarra",    fijo: "oscuro", v: "#1f2832" },
+  medianoche: { nombre: "Medianoche", fijo: "oscuro", v: "#0f1a2e" },
+  oceano:     { nombre: "Océano",     fijo: "oscuro", v: "#0c2a35" },
+  bosque:     { nombre: "Bosque",     fijo: "oscuro", v: "#14241b" },
+  ciruela:    { nombre: "Ciruela",    fijo: "oscuro", v: "#271c38" },
+  vino:       { nombre: "Vino",       fijo: "oscuro", v: "#2d151c" },
+  // Para los otros estilos
+  ninguno:    { nombre: "Liso", claro: "#f2f2f7", oscuro: "#000000" },
 };
 
-const ajustes = leerJSON(CLAVE_AJUSTES, { estilo: "cristal", variante: "liquido", recuadros: "cristal", temaElegido: "Glaciar", tema: "claro", fondo: "glaciar2", foto: null, colorDefecto: "azul", completadasAbiertas: false });
+// Lo que se comparte entre dispositivos
+const COMPARTIDOS = ["temaElegido", "estilo", "variante", "fondo", "tema", "muestra", "recuadros", "texto"];
 
-function guardarAjustes() {
+const ajustes = leerJSON(CLAVE_AJUSTES, {
+  estilo: "cristal", variante: "liquido", recuadros: "cristal", temaElegido: "Glaciar", tema: "claro",
+  fondo: "glaciar", texto: "normal", foto: null, usarFoto: false, fotoColor: null,
+  colorDefecto: "azul", completadasAbiertas: false,
+});
+
+// Ajustes guardados por versiones anteriores de la app
+if (ajustes.fondo === "foto") { ajustes.usarFoto = !!ajustes.foto; ajustes.fondo = ajustes.fondoAntesDeFoto; }
+if (!FONDOS[ajustes.fondo] || ajustes.fondo === "ninguno" && ajustes.estilo === "cristal") {
+  Object.assign(ajustes, { fondo: "glaciar", temaElegido: "Glaciar", estilo: "cristal", variante: "liquido", tema: "claro" });
+}
+
+function guardarAjustesLocales() {
   try {
     localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
   } catch {
     avisar("La foto es demasiado grande para guardarla");
     ajustes.foto = null;
-    ajustes.fondo = "ninguno";
+    ajustes.usarFoto = false;
     localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
   }
   aplicarAjustes();
 }
 
+// Guarda en este dispositivo y lo manda a los demás
+function guardarAjustes() {
+  guardarAjustesLocales();
+  const valor = Object.fromEntries(COMPARTIDOS.map((k) => [k, ajustes[k]]));
+  guardar("ajustes", { id: "general", valor, borrado: false });
+}
+
+// Aplica los ajustes que llegan de otro dispositivo
+function cargarAjustesCompartidos() {
+  const r = db.ajustes.general;
+  if (!r || r.borrado) return;
+  const valor = { ...r.valor };
+  if (valor.fondo && !FONDOS[valor.fondo]) delete valor.fondo;
+  Object.assign(ajustes, valor);
+  guardarAjustesLocales();
+  if ($("dialogo-ajustes").open) pintarAjustes();
+}
+
 const oscuroDelSistema = matchMedia("(prefers-color-scheme: dark)");
 oscuroDelSistema.addEventListener?.("change", () => aplicarAjustes());
 
+const conFoto = () => ajustes.usarFoto && !!ajustes.foto;
+
 function temaActual() {
-  const fijo = ajustes.fondo !== "foto" && FONDOS[ajustes.fondo]?.fijo;
-  if (fijo) return fijo;
-  return ajustes.tema === "oscuro" ? "oscuro" : "claro";
+  if (conFoto()) return "oscuro"; // con foto, letras blancas
+  return FONDOS[ajustes.fondo]?.fijo ?? (ajustes.tema === "oscuro" ? "oscuro" : "claro");
 }
 
 function aplicarAjustes() {
   const tema = temaActual();
-  document.documentElement.dataset.tema = tema;
-  document.documentElement.dataset.estilo = ajustes.estilo;
-  document.documentElement.dataset.variante = ajustes.variante;
-  document.documentElement.dataset.recuadros = ajustes.recuadros ?? "cristal";
-  document.querySelector('meta[name="theme-color"]').content = tema === "oscuro" ? "#000000" : "#f2f2f7";
-  const fondo = $("fondo");
-  document.body.classList.toggle("con-foto", ajustes.fondo === "foto" && !!ajustes.foto);
-  if (ajustes.fondo === "foto" && ajustes.foto) {
-    fondo.style.background = `url(${ajustes.foto}) center / cover no-repeat`;
-  } else {
-    const f = FONDOS[ajustes.fondo] ?? FONDOS.ninguno;
-    fondo.style.background = f.v ?? f[tema];
-  }
+  const raiz = document.documentElement;
+  raiz.dataset.tema = tema;
+  raiz.dataset.estilo = ajustes.estilo;
+  raiz.dataset.variante = ajustes.variante;
+  raiz.dataset.recuadros = ajustes.recuadros ?? "cristal";
+  raiz.dataset.texto = ajustes.texto ?? "normal";
+  const f = FONDOS[ajustes.fondo] ?? FONDOS.ninguno;
+  const color = conFoto() ? (ajustes.fotoColor ?? "#000000") : (ajustes.muestra ?? f.v ?? f[tema]);
+  $("fondo").style.background = conFoto() ? `url(${ajustes.foto}) center / cover no-repeat` : color;
+  document.body.classList.toggle("con-foto", conFoto());
+  // La franja de arriba (hora y batería) del mismo color que el fondo
+  raiz.style.background = color;
+  document.querySelector('meta[name="theme-color"]').content = color;
 }
 
 // ---------- Utilidades ----------
@@ -267,7 +289,6 @@ let listaAbierta = null; // id de la lista abierta, o null en la pantalla de ini
 
 function abrirLista(id) {
   listaAbierta = id;
-  localStorage.setItem("lista-abierta", id ?? "");
   $("pantalla-inicio").hidden = !!id;
   $("pantalla-lista").hidden = !id;
   window.scrollTo(0, 0);
@@ -277,6 +298,7 @@ function abrirLista(id) {
 $("btn-volver").addEventListener("click", () => abrirLista(null));
 
 function pintar() {
+  if (arrastre) return; // no redibujar a mitad de un arrastre (se redibuja al soltar)
   if (listaAbierta && listaAbierta !== SIN_LISTA && !db.proyectos[listaAbierta]?.nombre) listaAbierta = null;
   if (listaAbierta && db.proyectos[listaAbierta]?.borrado) listaAbierta = null;
   $("pantalla-inicio").hidden = !!listaAbierta;
@@ -288,27 +310,29 @@ function pintar() {
 function pintarInicio() {
   const tarjetas = listas().map((l) => {
     const pendientes = tareasDeLista(l.id).filter((t) => !t.completada);
-    const importantes = pendientes.filter((t) => t.prioridad === 1).length;
     const total = tareasDeLista(l.id).length;
     const hecho = total ? Math.round(((total - pendientes.length) / total) * 100) : 0;
-    return h("button", {
+    const tarjeta = h("button", {
       class: "tarjeta-lista",
+      "data-id": l.id,
       style: `--c:${colorCss(l.color)};background:var(--c)`,
       onclick: () => abrirLista(l.id),
     },
-      h("span", { class: "contador" }, String(pendientes.length)),
       h("span", {},
         h("div", { class: "nombre" }, l.nombre),
-        importantes ? h("div", { class: "sub" }, `★ ${importantes} importante${importantes > 1 ? "s" : ""}`) : null,
         h("div", { class: "progreso" }, h("i", { style: `width:${hecho}%` })),
       ),
     );
+    activarArrastre(tarjeta, {
+      selector: ".tarjeta-lista[data-id]",
+      alOrdenar: (ids) => reordenar("proyectos", ids),
+    });
+    return tarjeta;
   });
 
   const sueltas = tareasDeLista(SIN_LISTA).filter((t) => !t.completada).length;
   if (sueltas) {
     tarjetas.push(h("button", { class: "tarjeta-lista", style: "--c:var(--gris);background:var(--c)", onclick: () => abrirLista(SIN_LISTA) },
-      h("span", { class: "contador" }, String(sueltas)),
       h("span", {}, h("div", { class: "nombre" }, "Sin lista")),
     ));
   }
@@ -333,9 +357,9 @@ function pintarLista() {
   $("btn-nueva-tarea").hidden = esSinLista;
 
   const tareas = tareasDeLista(listaAbierta);
-  // Pendientes: primero las importantes, luego por orden de creación
+  // Pendientes: primero las importantes, luego en el orden que hayas elegido
   const pendientes = tareas.filter((t) => !t.completada)
-    .sort((a, b) => (a.prioridad === 1 ? 0 : 1) - (b.prioridad === 1 ? 0 : 1) || a.creada - b.creada);
+    .sort((a, b) => (a.prioridad === 1 ? 0 : 1) - (b.prioridad === 1 ? 0 : 1) || ordenDe(a) - ordenDe(b));
   const hechas = tareas.filter((t) => t.completada)
     .sort((a, b) => (b.completada_en ?? 0) - (a.completada_en ?? 0));
 
@@ -350,15 +374,18 @@ function pintarLista() {
 
   if (hechas.length) {
     partes.push(h("section", { class: "seccion-completadas" },
-      h("button", {
-        class: "cabecera-completadas" + (completadasAbiertas ? " abierta" : ""),
-        onclick: () => {
-          completadasAbiertas = !completadasAbiertas;
-          ajustes.completadasAbiertas = completadasAbiertas;
-          localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
-          pintar();
-        },
-      }, h("span", { class: "flecha" }, "›"), `Completadas (${hechas.length})`),
+      h("div", { class: "fila-completadas" },
+        h("button", {
+          class: "cabecera-completadas" + (completadasAbiertas ? " abierta" : ""),
+          onclick: () => {
+            completadasAbiertas = !completadasAbiertas;
+            ajustes.completadasAbiertas = completadasAbiertas;
+            localStorage.setItem(CLAVE_AJUSTES, JSON.stringify(ajustes));
+            pintar();
+          },
+        }, h("span", { class: "flecha" }, "›"), `Completadas (${hechas.length})`),
+        h("button", { class: "boton-vaciar", onclick: () => vaciarCompletadas(hechas) }, "Vaciar"),
+      ),
       completadasAbiertas ? h("div", { class: "bloque" }, hechas.slice(0, 300).map(filaTarea)) : null,
     ));
   }
@@ -366,7 +393,7 @@ function pintarLista() {
 }
 
 function filaTarea(t) {
-  const fila = h("div", { class: "fila-tarea" + (t.completada ? " completada" : "") },
+  const fila = h("div", { class: "fila-tarea" + (t.completada ? " completada" : ""), "data-id": t.id, "data-grupo": t.prioridad === 1 ? "1" : "4" },
     h("div", { class: "detras" },
       h("span", { class: "izq" }, t.completada ? "↺ Pendiente" : "✓ Hecha"),
       h("span", { class: "der" }, "Borrar"),
@@ -388,6 +415,15 @@ function filaTarea(t) {
     ),
   );
   activarDeslizar(fila, t.id);
+  if (!t.completada) {
+    activarArrastre(fila, {
+      selector: ".fila-tarea[data-id]:not(.completada)",
+      mismoGrupo: (otra) => otra.dataset.grupo === fila.dataset.grupo,
+      bandeja: true,
+      alOrdenar: (ids) => reordenar("tareas", ids),
+      alMover: (listaId) => moverTarea(t.id, listaId),
+    });
+  }
   return fila;
 }
 
@@ -408,6 +444,7 @@ function activarDeslizar(fila, id) {
 
   tarea.addEventListener("pointermove", (e) => {
     if (!activo) return;
+    if (arrastre) { activo = false; return; } // se está arrastrando para reordenar
     const mx = e.clientX - inicioX, my = e.clientY - inicioY;
     if (!decidido) {
       if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
@@ -442,7 +479,7 @@ function activarDeslizar(fila, id) {
     tarea.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
     if (dx > UMBRAL) {
       tarea.style.transform = "translateX(100%)";
-      setTimeout(() => alternarCompletada(id), 180);
+      setTimeout(() => alternarCompletada(id, false), 180);
     } else if (dx < -UMBRAL) {
       tarea.style.transform = "translateX(-100%)";
       setTimeout(() => borrarTarea(id), 180);
@@ -472,8 +509,16 @@ function vibrar() {
   navigator.vibrate?.(10);
 }
 
-function alternarCompletada(id) {
+function alternarCompletada(id, celebrar = true) {
   const t = { ...db.tareas[id] };
+  // Pequeña animación antes de que la tarea baje a "Completadas"
+  const fila = !t.completada && celebrar && document.querySelector(`.fila-tarea[data-id="${CSS.escape(id)}"]`);
+  if (fila && !fila.classList.contains("celebrando")) {
+    fila.classList.add("celebrando");
+    vibrar();
+    setTimeout(() => alternarCompletada(id, false), 650);
+    return;
+  }
   t.completada = !t.completada;
   t.completada_en = t.completada ? Date.now() : null;
   guardar("tareas", t);
@@ -486,6 +531,144 @@ function borrarTarea(id) {
   guardar("tareas", { ...anterior, borrado: true });
   vibrar();
   avisar("Tarea borrada", () => guardar("tareas", { ...anterior, borrado: false }));
+}
+
+function vaciarCompletadas(hechas) {
+  const antes = hechas.map((t) => ({ ...t }));
+  guardarVarios("tareas", hechas.map((t) => ({ ...t, borrado: true })));
+  vibrar();
+  avisar(`${antes.length} tarea${antes.length > 1 ? "s" : ""} borrada${antes.length > 1 ? "s" : ""}`,
+    () => guardarVarios("tareas", antes.map((t) => ({ ...t, borrado: false }))));
+}
+
+function moverTarea(id, listaId) {
+  const t = db.tareas[id];
+  const destino = db.proyectos[listaId];
+  if (!t || !destino || t.proyecto_id === listaId) return;
+  const antes = t.proyecto_id;
+  guardar("tareas", { ...t, proyecto_id: listaId, orden: Date.now() });
+  avisar(`Movida a “${destino.nombre}”`, () => guardar("tareas", { ...db.tareas[id], proyecto_id: antes }));
+}
+
+// Orden de las tareas (las antiguas no tenían, usan la fecha de creación)
+const ordenDe = (t) => t.orden || t.creada;
+
+// Guarda el nuevo orden tras arrastrar
+function reordenar(tipo, ids) {
+  const cambiados = [];
+  ids.forEach((id, i) => {
+    const r = db[tipo][id];
+    if (r && r.orden !== i + 1) cambiados.push({ ...r, orden: i + 1 });
+  });
+  if (cambiados.length) guardarVarios(tipo, cambiados);
+  else pintar();
+}
+
+// ---------- Arrastrar: mantener pulsado y mover ----------
+//
+// Sirve para ordenar listas y tareas. Al arrastrar una tarea aparecen abajo
+// las demás listas: si la sueltas encima de una, se mueve a esa lista.
+
+const ESPERA_ARRASTRE = 400; // ms manteniendo pulsado
+let arrastre = null;
+
+// Mientras se arrastra, que la pantalla no haga scroll
+document.addEventListener("touchmove", (e) => { if (arrastre) e.preventDefault(); }, { passive: false });
+
+function activarArrastre(el, op) {
+  let temporizador = null, x0 = 0, y0 = 0;
+  const cancelarEspera = () => clearTimeout(temporizador);
+
+  el.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.target.closest(".check, .estrella")) return;
+    x0 = e.clientX; y0 = e.clientY;
+    const pointerId = e.pointerId;
+    cancelarEspera();
+    temporizador = setTimeout(() => empezarArrastre(el, op, pointerId, x0, y0), ESPERA_ARRASTRE);
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (Math.abs(e.clientX - x0) > 8 || Math.abs(e.clientY - y0) > 8) cancelarEspera();
+  });
+  el.addEventListener("pointerup", cancelarEspera);
+  el.addEventListener("pointercancel", cancelarEspera);
+  el.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+
+function empezarArrastre(el, op, pointerId, x, y) {
+  // Si la pantalla se ha redibujado mientras se mantenía pulsado, usar el elemento nuevo
+  if (!el.isConnected) el = document.querySelector(`${op.selector}[data-id="${CSS.escape(el.dataset.id)}"]`);
+  if (!el || document.querySelector("dialog[open]")) return;
+  const r = el.getBoundingClientRect();
+  const fantasma = el.cloneNode(true);
+  fantasma.classList.add("fantasma");
+  fantasma.removeAttribute("data-id");
+  Object.assign(fantasma.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+  document.body.append(fantasma);
+  el.classList.add("hueco");
+  arrastre = { el, op, fantasma, dx: x - r.left, dy: y - r.top, destino: null };
+  // Se escucha en toda la ventana: al cambiar de sitio el elemento, el navegador lo "suelta"
+  addEventListener("pointermove", moverArrastre);
+  addEventListener("pointerup", soltarArrastre);
+  addEventListener("pointercancel", cancelarArrastre);
+  if (op.bandeja) mostrarBandeja();
+  vibrar();
+}
+
+function moverArrastre(e) {
+  const a = arrastre;
+  a.fantasma.style.left = e.clientX - a.dx + "px";
+  a.fantasma.style.top = e.clientY - a.dy + "px";
+
+  // Si llega al borde, la pantalla avanza sola
+  if (e.clientY < 90) window.scrollBy(0, -10);
+  else if (e.clientY > innerHeight - 90 && !a.op.bandeja) window.scrollBy(0, 10);
+
+  const debajo = document.elementFromPoint(e.clientX, e.clientY);
+  // ¿Encima de una lista de la bandeja?
+  const chip = debajo?.closest(".chip-lista");
+  document.querySelectorAll(".chip-lista.encima").forEach((c) => c !== chip && c.classList.remove("encima"));
+  a.destino = chip?.dataset.id ?? null;
+  if (chip) { chip.classList.add("encima"); return; }
+
+  // ¿Encima de otro elemento? Se cambia de sitio
+  const otro = debajo?.closest(a.op.selector);
+  if (!otro || otro === a.el || otro.parentElement !== a.el.parentElement) return;
+  if (a.op.mismoGrupo && !a.op.mismoGrupo(otro)) return;
+  const hermanos = [...a.el.parentElement.children];
+  if (hermanos.indexOf(a.el) < hermanos.indexOf(otro)) otro.after(a.el);
+  else otro.before(a.el);
+}
+
+function cancelarArrastre() { soltarArrastre(null); }
+
+function soltarArrastre(e) {
+  const a = arrastre;
+  if (!a) return;
+  arrastre = null;
+  removeEventListener("pointermove", moverArrastre);
+  removeEventListener("pointerup", soltarArrastre);
+  removeEventListener("pointercancel", cancelarArrastre);
+  a.fantasma.remove();
+  a.el.classList.remove("hueco");
+  $("bandeja").hidden = true;
+  // Que el "clic" al soltar no abra la lista o la tarea
+  const parar = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+  window.addEventListener("click", parar, { capture: true, once: true });
+  setTimeout(() => window.removeEventListener("click", parar, { capture: true }), 400);
+
+  if (!e) return pintar(); // cancelado
+  if (a.destino && a.op.alMover) return a.op.alMover(a.destino);
+  const ids = [...a.el.parentElement.querySelectorAll(a.op.selector)].map((x) => x.dataset.id);
+  a.op.alOrdenar(ids);
+}
+
+function mostrarBandeja() {
+  const otras = listas().filter((l) => l.id !== listaAbierta);
+  if (!otras.length) return;
+  $("bandeja-listas").replaceChildren(...otras.map((l) =>
+    h("div", { class: "chip-lista", "data-id": l.id, style: `--c:${colorCss(l.color)}` }, l.nombre)));
+  $("bandeja").hidden = false;
 }
 
 // ---------- Hojas ----------
@@ -551,7 +734,7 @@ $("form-tarea").addEventListener("submit", (e) => {
   } else {
     guardar("tareas", {
       id: nuevoId(), ...cambios, proyecto_id: listaAbierta, etiquetas: [], fecha: null,
-      completada: false, completada_en: null, creada: Date.now(), orden: 0, borrado: false,
+      completada: false, completada_en: null, creada: Date.now(), orden: Date.now(), borrado: false,
       recordatorio: null, recurrencia: null, padre_id: null,
     });
   }
@@ -614,47 +797,40 @@ $("btn-borrar-lista").addEventListener("click", () => {
   abrirLista(null);
 });
 
-// Ajustes
-// Combinaciones ya hechas: un toque y listo
-// Temas: cada uno es un aspecto completo (fondo + estilo). Un toque y listo.
-const L = (fondo) => ({ estilo: "cristal", variante: "liquido", fondo });
-const S = (fondo) => ({ estilo: "cristal", variante: "sobrio", fondo });
+// Ajustes: cada tema es un aspecto completo (fondo + estilo). Un toque y listo.
+const L = (fondo) => [FONDOS[fondo].nombre, { estilo: "cristal", variante: "liquido", fondo }];
 const GRUPOS_TEMAS = [
-  ["Liquid Glass", [
-    ["Glaciar", L("glaciar2")], ["Cielo", L("cielo2")], ["Perla", L("perla")], ["Menta", L("menta")],
-    ["Lavanda", L("lavanda2")], ["Melocotón", L("melocoton")],
-  ]],
-  ["Liquid Glass de colores", [
-    ["Laguna", L("laguna")], ["Coral", L("coral")], ["Violeta", L("violeta")], ["Lima", L("lima")],
-    ["Ámbar", L("ambar")], ["Carbón", L("carbon")],
-  ]],
-  ["Sobrios", [
-    ["Hielo", S("hielo")], ["Niebla", S("niebla")], ["Acero", S("acero")], ["Grafito", S("grafito")],
-    ["Ónix", S("onix")], ["Pizarra", S("pizarra")], ["Medianoche", S("medianoche")],
-  ]],
+  ["Colores claros", ["glaciar", "perla", "cielo", "menta", "lavanda", "melocoton", "arena", "rosa"].map(L)],
+  ["Colores oscuros", ["carbon", "negro", "pizarra", "medianoche", "oceano", "bosque", "ciruela", "vino"].map(L)],
   ["Otros estilos", [
     ["Clásico", { estilo: "clasico", fondo: "ninguno", tema: "claro", muestra: "#f2f2f7" }],
-    ["Clásico oscuro", { estilo: "clasico", fondo: "ninguno", tema: "oscuro", muestra: "#000" }],
+    ["Clásico oscuro", { estilo: "clasico", fondo: "ninguno", tema: "oscuro", muestra: "#000000" }],
     ["Bento", { estilo: "bento", fondo: "ninguno", tema: "claro", muestra: "#f2f2f7" }],
     ["Papel", { estilo: "papel", fondo: "ninguno", tema: "claro", muestra: "#f5efe3" }],
     ["Monocromo", { estilo: "monocromo", fondo: "ninguno", tema: "claro", muestra: "#ffffff" }],
-    ["Aurora", { estilo: "cristal", variante: "esmerilado", fondo: "aurora", tema: "claro" }],
-    ["Lava", { estilo: "cristal", variante: "tintado", fondo: "lava", tema: "claro" }],
-    ["Océano", { estilo: "cristal", variante: "hielo", fondo: "oceano", tema: "claro" }],
-    ["Neón", { estilo: "cristal", variante: "neon", fondo: "neon", tema: "oscuro" }],
   ]],
 ];
 
 function elegirTema(nombre, t) {
-  const f = FONDOS[t.fondo];
   Object.assign(ajustes, {
     temaElegido: nombre,
     estilo: t.estilo,
-    variante: t.variante ?? "esmerilado",
+    variante: t.variante ?? "liquido",
     fondo: t.fondo,
-    tema: t.tema ?? f?.fijo ?? "claro",
+    tema: t.tema ?? FONDOS[t.fondo]?.fijo ?? "claro",
+    muestra: t.muestra ?? null,
+    usarFoto: false, // al elegir un color, se deja de usar la foto
   });
-  guardarAjustes(); pintarAjustes(); pintar();
+  guardarAjustes(); pintarAjustes();
+}
+
+function segmentos(contenedor, opciones, actual, alElegir) {
+  contenedor.replaceChildren(
+    ...opciones.map(([valor, texto]) => h("button", {
+      type: "button", class: actual === valor ? "elegido" : "",
+      onclick: () => { alElegir(valor); guardarAjustes(); pintarAjustes(); },
+    }, texto))
+  );
 }
 
 function pintarAjustes() {
@@ -667,8 +843,8 @@ function pintarAjustes() {
           const oscuro = (t.tema ?? f?.fijo) === "oscuro";
           return h("button", {
             type: "button",
-            class: "muestra-fondo muestra-tema" + (ajustes.temaElegido === nombre && ajustes.fondo !== "foto" ? " elegido" : ""),
-            style: `background:${t.muestra ?? f.v ?? f[oscuro ? "oscuro" : "claro"]}`,
+            class: "muestra-fondo muestra-tema" + (ajustes.temaElegido === nombre && !conFoto() ? " elegido" : ""),
+            style: `background:${t.muestra ?? f.v}`,
             "data-oscuro": oscuro,
             onclick: () => elegirTema(nombre, t),
           }, h("span", { class: "mini-tarjeta" }), h("span", { class: "mini-tarjeta" }), nombre);
@@ -677,24 +853,24 @@ function pintarAjustes() {
     ))
   );
 
-  $("segmentos-recuadros").replaceChildren(
-    ...[["cristal", "Del tema"], ["color", "De color"]].map(([valor, texto]) =>
-      h("button", {
-        type: "button", class: (ajustes.recuadros ?? "cristal") === valor ? "elegido" : "",
-        onclick: () => { ajustes.recuadros = valor; guardarAjustes(); pintarAjustes(); pintar(); },
-      }, texto)
-    )
-  );
+  segmentos($("segmentos-recuadros"), [["cristal", "Del tema"], ["color", "De color"]],
+    ajustes.recuadros ?? "cristal", (v) => (ajustes.recuadros = v));
+  segmentos($("segmentos-texto"), [["normal", "Normal"], ["grande", "Grande"], ["enorme", "Muy grande"]],
+    ajustes.texto ?? "normal", (v) => (ajustes.texto = v));
 
-  const conFoto = ajustes.fondo === "foto" && !!ajustes.foto;
-  $("texto-foto").textContent = conFoto ? "Cambiar mi foto…" : "Usar mi foto…";
-  $("btn-quitar-foto").hidden = !conFoto;
+  $("texto-foto").textContent = conFoto() ? "Cambiar mi foto…" : ajustes.foto ? "Usar otra foto…" : "Usar mi foto…";
+  $("btn-usar-foto").hidden = !ajustes.foto || conFoto();
+  $("btn-quitar-foto").hidden = !conFoto();
 }
 
+$("btn-usar-foto").addEventListener("click", () => {
+  ajustes.usarFoto = true;
+  guardarAjustesLocales(); pintarAjustes();
+});
+
 $("btn-quitar-foto").addEventListener("click", () => {
-  ajustes.foto = null;
-  ajustes.fondo = FONDOS[ajustes.fondoAntesDeFoto] ? ajustes.fondoAntesDeFoto : "glaciar2";
-  guardarAjustes(); pintarAjustes(); pintar();
+  ajustes.usarFoto = false;
+  guardarAjustesLocales(); pintarAjustes();
 });
 
 $("btn-ajustes").addEventListener("click", () => {
@@ -703,7 +879,7 @@ $("btn-ajustes").addEventListener("click", () => {
   $("dialogo-ajustes").showModal();
 });
 
-// Foto de fondo: se reduce para que ocupe poco y se guarda en este dispositivo
+// Foto de fondo: se reduce para que ocupe poco y se guarda solo en este dispositivo
 $("input-foto").addEventListener("change", async (e) => {
   const archivo = e.target.files[0];
   e.target.value = "";
@@ -714,11 +890,17 @@ $("input-foto").addEventListener("change", async (e) => {
     const lienzo = document.createElement("canvas");
     lienzo.width = Math.round(imagen.width * escala);
     lienzo.height = Math.round(imagen.height * escala);
-    lienzo.getContext("2d").drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+    const ctx = lienzo.getContext("2d");
+    ctx.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+    // Color medio de la parte de arriba, para la franja de la hora y la batería
+    const franja = ctx.getImageData(0, 0, lienzo.width, Math.max(1, Math.round(lienzo.height * 0.05))).data;
+    let r = 0, g = 0, b = 0;
+    for (let i = 0; i < franja.length; i += 4) { r += franja[i]; g += franja[i + 1]; b += franja[i + 2]; }
+    const n = franja.length / 4;
+    ajustes.fotoColor = `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
     ajustes.foto = lienzo.toDataURL("image/jpeg", 0.8);
-    if (ajustes.fondo !== "foto") ajustes.fondoAntesDeFoto = ajustes.fondo;
-    ajustes.fondo = "foto";
-    guardarAjustes();
+    ajustes.usarFoto = true;
+    guardarAjustesLocales();
     pintarAjustes();
   } catch {
     avisar("No se pudo abrir esa imagen");
@@ -741,8 +923,8 @@ document.addEventListener("keydown", (e) => {
 // ---------- Arranque ----------
 
 aplicarAjustes();
-listaAbierta = localStorage.getItem("lista-abierta") || null;
-pintar();
+cargarAjustesCompartidos();
+pintar(); // siempre empieza en el inicio
 mostrarEstadoSync();
 sincronizar();
 

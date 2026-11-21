@@ -36,7 +36,7 @@ def sync(cliente, cursor=0, **cambios):
 
 
 def test_sincronizacion_vacia(cliente):
-    assert sync(cliente) == {"cursor": 0, "proyectos": [], "etiquetas": [], "tareas": []}
+    assert sync(cliente) == {"cursor": 0, "proyectos": [], "etiquetas": [], "tareas": [], "ajustes": []}
 
 
 def test_un_dispositivo_crea_y_otro_lo_recibe(cliente):
@@ -78,3 +78,11 @@ def test_datos_no_validos(cliente):
         assert cliente.post("/api/sync", json={"tareas": [mala]}).status_code == 422
     proyecto = {"id": "p1", "nombre": "X", "color": "fucsia", "actualizado": 1}
     assert cliente.post("/api/sync", json={"proyectos": [proyecto]}).status_code == 422
+
+
+def test_ajustes_se_comparten(cliente):
+    ajuste = {"id": "general", "actualizado": 1000, "valor": {"fondo": "glaciar", "texto": "grande"}}
+    sync(cliente, ajustes=[ajuste])
+    assert sync(cliente)["ajustes"][0]["valor"]["texto"] == "grande"
+    enorme = {**ajuste, "valor": {"x": "a" * 5000}}
+    assert cliente.post("/api/sync", json={"ajustes": [enorme]}).status_code == 422

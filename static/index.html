@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Tareas</title>
-  <meta name="theme-color" content="#f2f2f7">
+  <meta name="theme-color" content="#dbe7f2">
   <!-- Para poder "instalarla" en la pantalla de inicio del iPhone/iPad -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -113,6 +113,18 @@
         <button type="button" class="boton-texto negrita" data-cerrar>Listo</button>
       </div>
 
+      <div id="temas"></div>
+
+      <p class="etiqueta-grupo">Tu foto (solo en este dispositivo)</p>
+      <div class="grupo">
+        <label class="fila fila-boton" id="fila-foto">
+          <span id="texto-foto">Usar mi foto…</span>
+          <input type="file" accept="image/*" id="input-foto" hidden>
+        </label>
+        <button type="button" class="fila fila-boton" id="btn-usar-foto">Volver a usar mi foto</button>
+        <button type="button" class="fila fila-boton peligro-texto" id="btn-quitar-foto">Quitar mi foto</button>
+      </div>
+
       <p class="etiqueta-grupo">Recuadros de las listas</p>
       <div class="grupo">
         <div class="fila">
@@ -121,20 +133,23 @@
         </div>
       </div>
 
-      <p class="etiqueta-grupo">Fondo</p>
+      <p class="etiqueta-grupo">Tamaño del texto</p>
       <div class="grupo">
-        <label class="fila fila-boton" id="fila-foto">
-          <span id="texto-foto">Usar mi foto…</span>
-          <input type="file" accept="image/*" id="input-foto" hidden>
-        </label>
-        <button type="button" class="fila fila-boton peligro-texto" id="btn-quitar-foto">Quitar mi foto</button>
+        <div class="fila">
+          <span>Letra</span>
+          <div class="segmentos" id="segmentos-texto"></div>
+        </div>
       </div>
-
-      <div id="temas"></div>
 
       <p class="info" id="info-ajustes"></p>
     </div>
   </dialog>
+
+  <!-- Al arrastrar una tarea: listas donde soltarla para moverla -->
+  <div id="bandeja" class="bandeja" hidden>
+    <p>Suelta en una lista para moverla</p>
+    <div id="bandeja-listas" class="bandeja-listas"></div>
+  </div>
 
   <div id="aviso" class="aviso" hidden>
     <span id="aviso-texto"></span>
