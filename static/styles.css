@@ -132,17 +132,25 @@ input, textarea { font: inherit; color: inherit; }
 /* Cada fila tiene detrás los colores del gesto de deslizar */
 .fila-tarea { position: relative; overflow: hidden; }
 .fila-tarea + .fila-tarea { border-top: 1px solid var(--separador); }
-.detras {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between;
-  padding: 0 22px; color: #fff; font-weight: 600; font-size: 15px;
+.detras { position: absolute; inset: 0; color: #fff; font-weight: 600; font-size: 15px; pointer-events: none; }
+.detras .izq, .detras .der {
+  position: absolute; top: 0; bottom: 0; width: 0; overflow: hidden;
+  display: flex; align-items: center; white-space: nowrap;
+  transition: width .2s ease, background-color .15s;
 }
-.detras .izq, .detras .der { opacity: 0; transition: opacity .1s; }
+.detras .izq { left: 0; background: color-mix(in srgb, var(--verde) 55%, #8e8e93); }
+.detras .der { right: 0; justify-content: flex-end; background: color-mix(in srgb, var(--peligro) 55%, #8e8e93); }
+.detras .izq.listo { background: var(--verde); }
+.detras .der.listo { background: var(--peligro); }
+.detras b { padding: 0 20px; font-size: 22px; font-weight: 700; }
+.deslizando .detras .izq, .deslizando .detras .der { transition: background-color .15s; }
 .tarea {
   position: relative; display: flex; align-items: center; gap: 14px;
   padding: 14px 14px 14px 16px; min-height: 56px;
   background: var(--tarjeta-solida);
   touch-action: pan-y;
   transition: transform .2s ease;
+  will-change: transform;
 }
 .tarea.arrastrando { transition: none; }
 

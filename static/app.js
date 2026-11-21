@@ -399,8 +399,8 @@ function pintarLista() {
 function filaTarea(t) {
   const fila = h("div", { class: "fila-tarea" + (t.completada ? " completada" : ""), "data-id": t.id, "data-grupo": t.prioridad === 1 ? "1" : "4" },
     h("div", { class: "detras" },
-      h("span", { class: "izq" }, t.completada ? "↺ Pendiente" : "✓ Hecha"),
-      h("span", { class: "der" }, "Borrar"),
+      h("span", { class: "izq" }, h("b", {}, t.completada ? "↺" : "✓")),
+      h("span", { class: "der" }, h("b", {}, "✕")),
     ),
     h("div", { class: "tarea" },
       h("button", {
@@ -432,68 +432,97 @@ function filaTarea(t) {
 }
 
 // ---------- Deslizar: derecha = completar, izquierda = borrar ----------
+//
+// El color solo ocupa el hueco que deja la tarea al moverse, así nunca
+// se queda una franja verde o roja encima de la tarea.
 
-const UMBRAL = 90;
+const UMBRAL = 60;         // px que hay que deslizar para que cuente
+const UMBRAL_RAPIDO = 30;  // con un gesto rápido basta con menos
+const VELOCIDAD = 0.45;    // px por ms para considerarlo gesto rápido
 
 function activarDeslizar(fila, id) {
   const tarea = fila.querySelector(".tarea");
-  const detras = fila.querySelector(".detras");
-  const [izq, der] = detras.children;
+  const [izq, der] = fila.querySelector(".detras").children;
   let inicioX = 0, inicioY = 0, dx = 0, activo = false, decidido = false;
+  let ultimoX = 0, ultimoT = 0, velocidad = 0, cuadro = 0;
+
+  const pintarDesplazamiento = () => {
+    cuadro = 0;
+    tarea.style.transform = `translate3d(${dx}px,0,0)`;
+    izq.style.width = Math.max(0, dx) + "px";
+    der.style.width = Math.max(0, -dx) + "px";
+    const pasa = Math.abs(dx) >= UMBRAL;
+    izq.classList.toggle("listo", pasa && dx > 0);
+    der.classList.toggle("listo", pasa && dx < 0);
+  };
+
+  // Deja la fila como estaba
+  const limpiar = () => {
+    cancelAnimationFrame(cuadro); cuadro = 0;
+    activo = false; decidido = false; dx = 0;
+    tarea.classList.remove("arrastrando");
+    fila.classList.remove("deslizando");
+    tarea.style.transform = "";
+    izq.style.width = der.style.width = "0px";
+    izq.classList.remove("listo"); der.classList.remove("listo");
+  };
 
   tarea.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    inicioX = e.clientX; inicioY = e.clientY; dx = 0; activo = true; decidido = false;
+    inicioX = ultimoX = e.clientX; inicioY = e.clientY; ultimoT = e.timeStamp;
+    dx = 0; velocidad = 0; activo = true; decidido = false;
   });
 
   tarea.addEventListener("pointermove", (e) => {
     if (!activo) return;
-    if (arrastre) { activo = false; return; } // se está arrastrando para reordenar
+    if (arrastre) { limpiar(); return; } // se está arrastrando para reordenar
     const mx = e.clientX - inicioX, my = e.clientY - inicioY;
     if (!decidido) {
-      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      if (Math.abs(mx) < 6 && Math.abs(my) < 6) return;
       if (Math.abs(my) > Math.abs(mx)) { activo = false; return; } // está haciendo scroll
       decidido = true;
-      tarea.setPointerCapture(e.pointerId);
+      try { tarea.setPointerCapture(e.pointerId); } catch {}
       tarea.classList.add("arrastrando");
+      fila.classList.add("deslizando");
     }
+    const dt = e.timeStamp - ultimoT;
+    if (dt > 0) velocidad = (e.clientX - ultimoX) / dt;
+    ultimoX = e.clientX; ultimoT = e.timeStamp;
     dx = mx;
-    tarea.style.transform = `translateX(${dx}px)`;
-    const haciaDerecha = dx > 0;
-    detras.style.background = haciaDerecha ? "var(--verde)" : "var(--peligro)";
-    izq.style.opacity = haciaDerecha && dx > 30 ? 1 : 0;
-    der.style.opacity = !haciaDerecha && dx < -30 ? 1 : 0;
+    if (!cuadro) cuadro = requestAnimationFrame(pintarDesplazamiento);
   });
-
-  // Deja la fila como estaba (sin rojo ni verde detrás)
-  const limpiar = () => {
-    tarea.classList.remove("arrastrando");
-    tarea.style.transform = "";
-    detras.style.background = "";
-    izq.style.opacity = 0;
-    der.style.opacity = 0;
-  };
 
   const soltar = () => {
     if (!activo) return;
-    activo = false;
-    if (!decidido) return;
-    tarea.classList.remove("arrastrando");
+    if (!decidido) { activo = false; return; }
+    const rapido = Math.abs(velocidad) > VELOCIDAD && Math.abs(dx) > UMBRAL_RAPIDO && Math.sign(velocidad) === Math.sign(dx);
+    const final = dx;
     // Evita que el "clic" al soltar abra la tarea
     tarea.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
-    if (dx > UMBRAL) {
-      tarea.style.transform = "translateX(100%)";
-      setTimeout(() => alternarCompletada(id, false), 180);
-    } else if (dx < -UMBRAL) {
-      tarea.style.transform = "translateX(-100%)";
-      setTimeout(() => borrarTarea(id), 180);
-    } else {
-      limpiar();
+    if (final >= UMBRAL || (rapido && final > 0)) {
+      tarea.classList.remove("arrastrando");
+      fila.classList.remove("deslizando");
+      tarea.style.transform = "translate3d(100%,0,0)";
+      izq.style.width = "100%";
+      activo = false;
+      setTimeout(() => { limpiar(); alternarCompletada(id, false); }, 160);
+      return;
     }
+    if (final <= -UMBRAL || (rapido && final < 0)) {
+      tarea.classList.remove("arrastrando");
+      fila.classList.remove("deslizando");
+      tarea.style.transform = "translate3d(-100%,0,0)";
+      der.style.width = "100%";
+      activo = false;
+      setTimeout(() => { limpiar(); borrarTarea(id); }, 160);
+      return;
+    }
+    limpiar(); // no ha llegado: vuelve a su sitio
   };
   tarea.addEventListener("pointerup", soltar);
-  tarea.addEventListener("pointercancel", () => { activo = false; limpiar(); });
-  tarea.addEventListener("lostpointercapture", () => { if (activo) { activo = false; limpiar(); } });
+  // Cualquier interrupción (llamada, scroll del sistema...) deja la fila limpia
+  tarea.addEventListener("pointercancel", limpiar);
+  tarea.addEventListener("lostpointercapture", () => { if (activo) soltar(); });
 }
 
 // ---------- Acciones sobre tareas ----------
